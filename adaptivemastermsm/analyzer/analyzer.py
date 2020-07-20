@@ -25,11 +25,11 @@ class analyzer(object):
 
         Args:
             trajfile (str): File to read trajectories
-            epoch (int): Which epoch/round/generation we are at
+            epoch (int): which epoch/round/generation we are at
             mcs (int): min_cluster_size for HDBSCAN
             ms (int): min_samples for HDBSCAN
             lagt (float): lag time (in nanosec)
-            rate (bool): Compute K matrix, otherwise T will be calculated
+            rate (bool): compute K matrix, otherwise T will be calculated
         """
 
         # Read trajectory from controller preprocessor
