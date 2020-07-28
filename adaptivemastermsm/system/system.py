@@ -3,7 +3,7 @@ This file is part of the AdaptiveMasterMSM package.
 
 """
 
-class system(object):
+class System(object):
     """
     Create files to be able to run GROMACS
     """
@@ -25,8 +25,8 @@ class system(object):
         elif self.md_step == 'Production':
             self.driver_production()
         else:
-            print "md_step %s not valid" % self.md_step
-                raise Exception("It must be 'Production' or 'Equilibration'")
+            print ("md_step %s not valid" % self.md_step)
+            raise Exception("It must be 'Production' or 'Equilibration'")
 
         self.write_mdp('%s_parameters.mdp' % self.md_step)
 
@@ -52,12 +52,7 @@ class system(object):
             int(self.prod['total_time'] / self.prod['timestep'])
 
         for p in self.prod.keys():
-            if p == 'barostat':
-                self.run['barostat'] = 'No'
-            elif p == 'pressure':
-                self.run['pressure'] = 1
-            else:
-                self.run[p] = self.prod[p]
+            self.run[p] = self.prod[p]
 
         return
 
@@ -67,12 +62,14 @@ class system(object):
         """
         production = {
             'timestep'       : 0.002,         # ps
-            'total_time'     : 10,         # ps / 10ns
+            'total_time'     : 1,             # ps / 10ns
             'log_freq'       : 10000,         # timesteps / 20ps
             'xtc_freq'       : 100,         # timesteps
             'temperature'    : 300,           # Kelvin
             'thermostat'     : 'Nose-Hoover', # type
             'box_size'       : 3.5,           # Angstroms
+            'barostat'       : 'No',          # No barostat
+            'pressure'       : 1,             # pressure
             'Cl'             : 0,             # number Cl's
             'Na'             : 0              # number Na's
         }
@@ -87,7 +84,7 @@ class system(object):
             'timestep'       : 0.002,         # ps
             'total_time'     : 1,          # ps
             'barostat'       : 'berendsen',   # type
-            'pressure'       : 1              # bar
+            'pressure'       : 1,              # bar
             'log_freq'       : 10000,         # timesteps / 20ps
             'xtc_freq'       : 100,         # timesteps
             'temperature'    : 300,           # Kelvin
@@ -108,7 +105,7 @@ class system(object):
         if self.water in water_dict.keys():
             water_topol = water_dict[self.water]
         else:
-            print "Could not find a topology in 'w_top_dict' for water: %s" % self.water
+            print ("Could not find a topology in 'w_top_dict' for water: %s" % self.water)
             raise Exception("Invalid water model for GROMACS.")
 
         # format the water string
@@ -119,12 +116,12 @@ class system(object):
             ion_str += '-np %d ' % self.run['Na']
 
         cmds =[
-        'editconf -f conf.gro -bt cubic -box %f %f %f -align 1 1 1' %((self.run['box_size'],)*3),
-        'genbox -cp out.gro -cs %s -p topol.top' % water_topol,
-        'grompp -f Minimization.mdp -c out.gro -p topol.top',
-        'echo SOL | genion  -s topol.tpr -o out.gro -p topol.top %s' % ion_str,
-        'grompp -f Minimization.mdp -c out.gro -p topol.top',
-        'mdrun -s topol.tpr -x minimization.xtc -c start.gro -pd -g EM.log'
+        'gmx editconf -f conf.gro -bt cubic -box %f %f %f -align 1 1 1' %((self.run['box_size'],)*3),
+        'gmx genbox -cp out.gro -cs %s -p topol.top' % water_topol,
+        'gmx grompp -f Minimization.mdp -c out.gro -p topol.top',
+        'echo SOL | gmx genion  -s topol.tpr -o out.gro -p topol.top %s' % ion_str,
+        'gmx grompp -f Minimization.mdp -c out.gro -p topol.top',
+        'gmx mdrun -s topol.tpr -x minimization.xtc -c start.gro -pd -g EM.log'
         ]
 
         return cmds
@@ -141,11 +138,11 @@ class system(object):
     nstenergy                = 0
     nstxtcout                = %d
     xtc_grps                 = System
-    nstlist                  = 10
+    nstlist                  = 0
     ns_type                  = grid
     pbc                      = xyz
     periodic_molecules       = no
-    rlist                    = 1.5
+    rlist                    = 0.03
     coulombtype              = PME
     fourier_nx               = 0
     fourier_ny               = 0
@@ -153,10 +150,10 @@ class system(object):
     optimize_fft             = yes
     pme_order                = 4
     fourierspacing           = 0.08
-    rcoulomb                 = 1.5
+    rcoulomb                 = 0.1
     vdwtype                  = shift
-    rvdw                     = 1.25
-    rvdw_switch              = 1.0
+    rvdw                     = 0.1
+    ; rvdw_switch              = 1.0
     tcoupl                   = %s
     tc_grps                  = System
     tau_t                    = 1
@@ -169,7 +166,8 @@ class system(object):
     gen_vel                  = yes
     gen_temp                 = %f
     constraints              = hbonds
-    continuation             = yes
+    continuation             = no
+    ; continuation             = yes
     morse                    = no
     implicit_solvent         = no
     """ % ( self.run['timestep'],
@@ -185,7 +183,7 @@ class system(object):
         f = open(f_name, 'w')
         f.write(txt)
         f.close()
-        print "Generated: %s" % f_name
+        print ("Generated: %s" % f_name)
 
         return
 
@@ -221,7 +219,7 @@ class system(object):
         f = open(f_name, 'w')
         f.write(txt)
         f.close()
-        print "Generated: %s" % f_name
+        print ("Generated: %s" % f_name)
 
         return
 
