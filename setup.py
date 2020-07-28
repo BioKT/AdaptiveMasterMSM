@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
 		name='AdaptiveMasterMSM',
-		version='0.0dev',
+		version='0.1dev',
 		description='Algorithms to do adaptive sampling exploiting MasterMSM',
 		url='http://github.com/BioKT/AdaptiveMasterMSM',
 		author='David De Sancho and Ion Mitxelena',
