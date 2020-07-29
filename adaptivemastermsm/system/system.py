@@ -119,9 +119,9 @@ class System(object):
         'gmx editconf -f conf.gro -bt cubic -box %f %f %f -align 1 1 1' %((self.run['box_size'],)*3),
         'gmx genbox -cp out.gro -cs %s -p topol.top' % water_topol,
         'gmx grompp -f Minimization.mdp -c out.gro -p topol.top',
-        'echo SOL | gmx genion  -s topol.tpr -o out.gro -p topol.top %s' % ion_str,
+        'echo SOL | gmx genion -s topol.tpr -o out.gro -p topol.top %s' % ion_str,
         'gmx grompp -f Minimization.mdp -c out.gro -p topol.top',
-        'gmx mdrun -s topol.tpr -x minimization.xtc -c start.gro -pd -g EM.log'
+        'gmx mdrun -v -s topol.tpr -x minimization.xtc -c start.gro -g EM.log'
         ]
 
         return cmds
@@ -138,7 +138,7 @@ class System(object):
     nstenergy                = 0
     nstxtcout                = %d
     xtc_grps                 = System
-    nstlist                  = 0
+    nstlist                  = 1
     ns_type                  = grid
     pbc                      = xyz
     periodic_molecules       = no
@@ -163,11 +163,11 @@ class System(object):
     pcoupltype               = isotropic
     compressibility          = 0.000045
     ref_p                    = %f
-    gen_vel                  = yes
+    gen_vel                  = no
     gen_temp                 = %f
     constraints              = hbonds
-    continuation             = no
-    ; continuation             = yes
+    continuation             = yes
+    ; continuation             = no
     morse                    = no
     implicit_solvent         = no
     """ % ( self.run['timestep'],
@@ -193,7 +193,7 @@ class System(object):
     integrator               = steep
     emstep                   = 0.001
     emtol                    = 10.0
-    nsteps                   = 100000
+    nsteps                   = 50000
     nstxout                  = 0
     nstvout                  = 0
     nstlog                   = 10
@@ -205,14 +205,14 @@ class System(object):
     ns_type                  = grid
     pbc                      = xyz
     periodic_molecules       = no
-    rlist                    = 1.5
-    rcoulomb                 = 1.5
-    rvdw                     = 1.5
+    rlist                    = 1.0
+    rcoulomb                 = 1.0
+    rvdw                     = 1.0
     tcoupl                   = no
     Pcoupl                   = no
-    gen_vel                  = no
+    gen_vel                  = yes
     constraints              = none
-    continuation             = yes
+    continuation             = no
     morse                    = no
     implicit_solvent         = no
     """
