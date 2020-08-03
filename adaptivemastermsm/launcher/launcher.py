@@ -26,9 +26,6 @@ class Launcher(object):
         Args:
             ¿¿¿sysfile (str): File containing system information???
             md_step (str): 'Equilibration' or 'Production'
-            forcefield (str): amber96, ...
-            water: water model for GROMACS (tip3p, ...)
-            pdb_fn (str): .pdb filename, also .gro can be provided
             wet_xtc_file (str)
             dry_xtc_file (str)
             last_wet_snapshot (str)
@@ -63,8 +60,7 @@ class Launcher(object):
             cmds.append('cp end.gro start.gro')
             
             # then production
-            #p.md_step = 'Production'  #ionix, ojo aqui
-            #p.init_parameters() actualiza self.run y crea otro md_run
+            # p.md_step = 'Production'  #ionix, ojo aqui
             p_prod = system.System(water, 'Production')
             self.wet_xtc_file = user_wet_xtc_file
             cmds.extend( self.run_md(n_threads, p_prod) )
@@ -76,7 +72,6 @@ class Launcher(object):
 
     def run_md(self, n_threads, Parameters):
     
-        #write_mdp('%s_parameters.mdp' % Parameters.md_step)
         cmds = ['gmx grompp -f %s_parameters.mdp -c start.gro -p topol.top -maxwarn 1'\
                 % Parameters.md_step, 'gmx mdrun -nt %d -s topol.tpr -x %s -c end.gro -g prod.log'\
              % (n_threads, self.wet_xtc_file) ]
