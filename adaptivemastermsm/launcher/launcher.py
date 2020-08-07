@@ -4,9 +4,10 @@ This file is part of the AdaptiveMasterMSM package.
 """
 #!/usr/bin/env python
 
-import os
+import sys, os
 import subprocess
 import shlex
+import multiprocessing as mp
 
 # AdaptiveMasterMSM
 from adaptivemastermsm.system import system
@@ -23,41 +24,52 @@ class Launcher(object):
         for the class analyzer
 
         Args:
-            ¿sysfile (str): File containing system information?
+            sysfile (str): File containing system information?
             md_step (str): 'Equilibration' or 'Production'
+            water: water model for GROMACS (tip3p, ...)
             filepdb (str): PDB file defining the system
             wet_xtc_file (str)
             dry_xtc_file (str)
             last_wet_snapshot (str)
 
-        ¿Return?:
+        Return?:
             trajfile (str): File containing processed trajectories
         """
-
         self.pdb = filepdb
         self.dry_xtc_file = dry_xtc_file
         self.last_wet_snapshot = last_wet_snapshot
-        # create an instance of system class
+        # create an instance of system class to define the system and parameters
         params = system.System(water, md_step, 1)
 
         if params.md_step == 'Production':
-            cmd = 'gmx pdb2gmx -f %s -o %s_processed.gro -ff %s -water %s' % \
-                    (filepdb, filepdb, forcefield, params.water)
+            cmd = 'gmx pdb2gmx -f %s -o processed_%s -ff %s -water %s' % \
+                    (self.pdb, self.pdb, forcefield, params.water)
             print(" running: ",cmd)
             p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = p.communicate()
-            print(out, err)
+            #print(out, err)
             self.wet_xtc_file = wet_xtc_file
             
+            n_short_runs = 2
+            mdp_template = params.filemdp
+            # ndx = ??? use this to set positions of ligands in future work
+            for i in range(n_short_runs):
+                mdp = gen_mdp(mdp_template, i)
+                out = "data/tpr/%s" % i
+                # different resampling positions:
+                gro = "data/gro/%s_%s" % (i, self.pdb)
+                top = "data/top/%s.top" % i
+                output, error = gen_tpr(gro, top, mdp, out)
+
             # set multiprocessing options
             n_threads = mp.cpu_count()
             pool = mp.Pool(processes=n_threads)
             # run simulations
-            gmxinput = [["data/%s" % i, "data/pull/%s" % i] \
+            gmxinput = [["data/tpr/%s" % i, "data/tpr/%s" % i] \
                         for i in range(n_short_runs)]
             results = []
             for x in gmxinput:
-                results.append(pool.apply_async(run_md, [x]))
+                results.append(pool.apply_async(gromacs_worker, [x]))
             # close the pool and wait for each running task to complete
             pool.close()
             pool.join()
@@ -67,32 +79,62 @@ class Launcher(object):
 
         elif params.md_step == 'Equilibration':
             # first equilibrate
-            cmd = 'gmx pdb2gmx -f %s -o %s_processed.gro -ff %s -water %s -ignh' % \
-                    (filepdb, filepdb, forcefield, params.water)
+            cmd = 'gmx pdb2gmx -f %s -o processed_%s -ff %s -water %s -ignh' % \
+                    (self.pdb, self.pdb, forcefield, params.water)
             print(" running: ",cmd)
             p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = p.communicate()
-            print(out, err)
-            out, err = params.build_box(1) # el numero es provisional
-            print(out, err, "ionix")
+            #print(out, err)
+            out, err = params.build_box(self.pdb, 1)
+            #print(out, err)
             user_wet_xtc_file = wet_xtc_file
             self.wet_xtc_file = 'equilibration.xtc'
             self.run_md(4, params)
-            os.system('cp end.gro %s_processed.gro' % filepdb)
-           
+
             # then production
             # p.md_step = 'Production'  #ionix, ojo aqui, por eso i+1=2
             p_prod = system.System(water, 'Production', 2)
             self.wet_xtc_file = user_wet_xtc_file
-            self.run_md(n_threads, p_prod)
+            self.run_md(4, p_prod)
 
         self.clean_working_directory()
 
         return
 
-    def run_md(self, n_threads, params):
+    def gen_tpr(gro, top, mdp, out):
         """
-    def run_md(self, x):
+        Function for generating tpr files
+
+        """
+        if not os.path.exists(out[:out.rfind("/")]):
+            os.makedirs(out[:out.rfind("/")])
+
+        cmd = "gmx grompp -c %s -p %s -f %s -o %s -maxwarn 1"\
+                %(gro, top, mdp, out)
+        print(" running: ",cmd)
+        p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        #print(out, err)
+        return out, err
+    
+    def gen_mdp(filemdp, i):
+        """ 
+        Generate Gromacs parameter input file (mdp)
+        
+        """
+        filemdpout = "data/mdp/%g.mdp" % i
+        try:
+            out = open(filemdpout, "w")
+        except IOError:
+            os.makedirs(filemdpout[:filemdpout.rfind("/")])
+            out = open(filemdpout, "w")
+        out.write(filemdp) #ionix: compare to check if it's fine
+        out.close()
+        return filemdpout
+    
+    def gromacs_worker(x):
+        """
+        Worker function for running Gromacs jobs
         
         md_step = x[0]
         tpr = x[1]
@@ -100,13 +142,29 @@ class Launcher(object):
         n_threads = x[3]
         """
 
+        print(x)
+        tpr = x[0]
+        out = x[1]
+
+        # run simulation
+        cmd = "gmx mdrun -v -s %s -deffnm %s"%(tpr, out)
+        print(" running: ",cmd)
+        p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        return (out, err)
+
+    def run_md(self, n_threads, params):
+        """
+        worker provisional para 'Equilibration'
+        """
+
         # note for the moment wet_xtc_file, dry_xtc_file and last_wet_snapshot
         # overwrite each other, until I see their need
 
-        cmd = 'gmx grompp -f %s -c %s_processed.gro -p topol.top -maxwarn 1'\
-                % (params.md_step, self.filepdb); \
-                'gmx mdrun -nt %d -s topol.tpr -x %s -c end.gro -g prod.log' % \
-                (n_threads, self.wet_xtc_file)
+        cmd = 'gmx grompp -f %s -c processed_%s -p topol.top -maxwarn 1'\
+                % (params.filemdp, self.pdb); \
+                'gmx mdrun -nt %d -s topol.tpr -x %s -c processed_%s -g prod.log' % \
+                (n_threads, self.pdb, self.wet_xtc_file)
         print(" running: ",cmd)
         p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
@@ -118,12 +176,12 @@ class Launcher(object):
             print(" running: ",cmd)
             p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = p.communicate()
-            print(output, error)
+            #print(output, error)
             cmd = 'echo PROTEIN | gmx trjconv -f %s -s topol.tpr -o %s -pbc whole' % (self.wet_xtc_file, self.dry_xtc_file)
             print(" running: ",cmd)
             p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = p.communicate()
-            print(output, error)
+            #print(output, error)
 
         return (out, err)
 

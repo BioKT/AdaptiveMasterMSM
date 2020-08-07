@@ -16,8 +16,6 @@ class System(object):
     def __init__(self, water, md_step, i):
         """
         Args:
-            water: water model for GROMACS (tip3p, ...)
-            md_step (str): must be 'Equilibration' or 'Production'
 
         """
         # Read user-defined parameters
@@ -33,7 +31,7 @@ class System(object):
             print ("md_step %s not valid" % self.md_step)
             raise Exception("It must be 'Production' or 'Equilibration'")
 
-        self.write_mdp(i)
+        self.filemdp = self.write_mdp(i)
 
         return
         
@@ -101,7 +99,7 @@ class System(object):
 
         return equilibration
 
-    def build_box(self, i):
+    def build_box(self, filepdb, i):
 
         mdpfile = self.write_minimization_mdp(i)
 
@@ -121,12 +119,12 @@ class System(object):
             ion_str += '-np %d ' % self.run['Na']
 
         cmd = \
-        'gmx editconf -f conf.gro -bt cubic -box %f %f %f -align 1 1 1' %((self.run['box_size'],)*3); \
+        'gmx editconf -f processed_%s -bt cubic -box %f %f %f -align 1 1 1' % (filepdb,self.run['box_size'],self.run['box_size'],self.run['box_size']); \
         'gmx genbox -cp out.gro -cs %s -p topol.top' % water_topol; \
         'gmx grompp -f %s -c out.gro -p topol.top' % mdpfile; \
         'echo SOL | gmx genion -s topol.tpr -o out.gro -p topol.top %s' % ion_str; \
         'gmx grompp -f %s -c out.gro -p topol.top' % mdpfile; \
-        'gmx mdrun -v -s topol.tpr -x minimization.xtc -c start.gro -g EM.log'
+        'gmx mdrun -v -s topol.tpr -x minimization.xtc -c processed_%s -g EM.log' % filepdb
         
         print(" running: ",cmd)
         p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -188,7 +186,7 @@ class System(object):
         self.run['pressure'],
         self.run['temperature'] )
 
-        # ionix: poner flag para check si existe ya el file
+        # ion: poner flag para check si existe ya el file
         filemdp = "data/as_%g.mdp" % i
         try:
             f = open(filemdp, 'w')
@@ -231,7 +229,7 @@ class System(object):
     implicit_solvent         = no
     """
         
-        # ionix: poner flag para check si existe ya el file
+        # ion: poner flag para check si existe ya el file
         filemdp = "data/as_minimization_%g.mdp" % i
         try:
             f = open(filemdp, 'w')
