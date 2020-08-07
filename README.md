@@ -21,6 +21,7 @@ Installation
     git clone http://github.com/BioKT/AdaptiveMasterMSM destination/AdaptiveMasterMSM
     cd destination/AdaptiveMasterMSM
     python setup.py install --user
+    for developers use: python setup.py develop --user 
 
 External libraries
 ------------------
