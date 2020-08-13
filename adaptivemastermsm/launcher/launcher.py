@@ -42,34 +42,45 @@ class Launcher(object):
         params = system.System(water, md_step, 1)
 
         if params.md_step == 'Production':
-            cmd = 'gmx pdb2gmx -f %s -o processed_%s -ff %s -water %s' % \
-                    (self.pdb, self.pdb, forcefield, params.water)
-            print(" running: ",cmd)
-            p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            out, err = p.communicate()
-            #print(out, err)
-            self.wet_xtc_file = wet_xtc_file
-            
-            n_short_runs = 2
+            self.wet_xtc_file = wet_xtc_file           
+            n_short_runs = 2 # this will be managed by controller
             mdp_template = params.filemdp
+
             # ndx = ??? use this to set positions of ligands in future work
             for i in range(n_short_runs):
-                mdp = gen_mdp(mdp_template, i)
-                out = "data/tpr/%s" % i
+                mdp = self.gen_mdp(mdp_template, i)
                 # different resampling positions:
-                gro = "data/gro/%s_%s" % (i, self.pdb)
+                gro = "data/gro/%s.gro" % i
+                if not os.path.exists(gro[:gro.rfind("/")]):
+                    os.makedirs(gro[:gro.rfind("/")])
+                cmd = "cp %s data/gro/%s.gro" % (self.pdb, i)
+                os.system(cmd)
                 top = "data/top/%s.top" % i
-                output, error = gen_tpr(gro, top, mdp, out)
+                if not os.path.exists(top[:top.rfind("/")]):
+                    os.makedirs(top[:top.rfind("/")])
+                itp = "data/itp/%s.itp" % i
+                if not os.path.exists(itp[:itp.rfind("/")]):
+                    os.makedirs(itp[:itp.rfind("/")])
+                cmd = 'gmx pdb2gmx -f %s -o processed_%s -ff %s -water %s' % \
+                    (gro, self.pdb, forcefield, params.water)
+                print(" running: ",cmd)
+                p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                output, error = p.communicate()
+                #print(output, error)
+                cmd = "mv processed_%s %s & mv topol.top %s & mv posre.itp %s" % \
+                        (self.pdb, gro, top, itp)
+                os.system(cmd)
+                out = "data/tpr/%s.tpr" % i
+                output, error = self.gen_tpr(gro, top, mdp, out, i)
 
             # set multiprocessing options
             n_threads = mp.cpu_count()
             pool = mp.Pool(processes=n_threads)
             # run simulations
-            gmxinput = [["data/tpr/%s" % i, "data/tpr/%s" % i] \
-                        for i in range(n_short_runs)]
+            gmxinput = [[out, gro] for i in range(n_short_runs)]
             results = []
             for x in gmxinput:
-                results.append(pool.apply_async(gromacs_worker, [x]))
+                results.append(pool.apply_async(self.gromacs_worker, [x]))
             # close the pool and wait for each running task to complete
             pool.close()
             pool.join()
@@ -101,38 +112,41 @@ class Launcher(object):
 
         return
 
-    def gen_tpr(gro, top, mdp, out):
+    def gen_tpr(self, gro, top, mdp, tpr, i):
         """
         Function for generating tpr files
 
         """
-        if not os.path.exists(out[:out.rfind("/")]):
-            os.makedirs(out[:out.rfind("/")])
-
+        if not os.path.exists(tpr[:tpr.rfind("/")]):
+            os.makedirs(tpr[:tpr.rfind("/")])
         cmd = "gmx grompp -c %s -p %s -f %s -o %s -maxwarn 1"\
-                %(gro, top, mdp, out)
+                %(gro, top, mdp, tpr)
         print(" running: ",cmd)
         p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
-        #print(out, err)
+        # print(out, err)
+        cmd = "mv mdout.mdp data/mdp/%s_out.mdp" % i
+        os.system(cmd)
         return out, err
     
-    def gen_mdp(filemdp, i):
+    def gen_mdp(self, filemdp, i):
         """ 
         Generate Gromacs parameter input file (mdp)
         
         """
-        filemdpout = "data/mdp/%g.mdp" % i
+        filemdpout = "data/mdp/%s.mdp" % i
         try:
             out = open(filemdpout, "w")
         except IOError:
             os.makedirs(filemdpout[:filemdpout.rfind("/")])
             out = open(filemdpout, "w")
-        out.write(filemdp) #ionix: compare to check if it's fine
+        rawmdp = open(filemdp).readlines()
+        for i in rawmdp:
+            out.write("%s"%i)
         out.close()
         return filemdpout
     
-    def gromacs_worker(x):
+    def gromacs_worker(self, x):
         """
         Worker function for running Gromacs jobs
         
