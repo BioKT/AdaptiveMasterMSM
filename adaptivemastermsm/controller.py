@@ -44,6 +44,7 @@ class Controller(object):
         """
 
         # GLOBAL PARAMETERS #
+        # try for instance pdb_fn='alaTB.gro', forcefield='amber96', water='tip3p'
         self.pdb_fn = pdb_fn
         self.ff = forcefield
         self.water = water
@@ -52,8 +53,11 @@ class Controller(object):
         max_time = 100
         
         # EQUILIBRATION #
-        lau_eq = launcher.Launcher('Equilibration', nproc, self.ff, self.water, \
+        lau_eq = launcher.Launcher('Production', self.ff, self.water, \
         self.pdb_fn, 'wetfn', dry_xtc_file='dryfn', last_wet_snapshot='lastwetfn')
+
+        end-here-now
+
 
         n = 0
         while True:
@@ -63,6 +67,10 @@ class Controller(object):
 
             # PRODUCTION #
             # launcher.Launcher()
+
+            if n > n_rounds or sim_time > max_time:
+                # Call SuperMSM to converge last MSM
+                break
 
         """
         # define multiprocessing options
@@ -80,8 +88,6 @@ class Controller(object):
         count = reduce(lambda x, y: np.matrix(x) + np.matrix(y), result)
         """
 
-            if (n > n_rounds or sim_time > max_time):
-                # Call SuperMSM to converge last MSM
-                break
+            
         
 
