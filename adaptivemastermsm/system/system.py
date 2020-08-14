@@ -13,13 +13,101 @@ class System(object):
     Create files to be able to run GROMACS
     """
 
-    def __init__(self, water, md_step, i):
+    def __init__(self, pdb, forcefield=None, water=None, topology=None):
         """
-        Args:
+        Parameters
+        ----------
+        pdb : str
+            Path to the PDB or GRO file to start setup
+        forcefield : str
+            Name of force field in Gromacs format (e.g. amber03, charmm27...)
+        water : str
+            water model for GROMACS (tip3p, spc, ...)
+        top : str
+            Path to topology TOP file
 
         """
         # Read user-defined parameters
-        self.water = water
+        self.pdb = pdb
+        if forcefield is not None:
+            self.ff = forcefield
+            self.wat = water
+        elif topology is not None:
+            self.top = topology
+    
+    def gen_top(self, gro='conf', top='topol'):
+        """
+        Generates topology from structure file.
+
+        """
+        pdb = self.pdb
+        self.gro = gro
+        ff = self.ff
+        wat = self.wat
+        self.top = top
+        cmd = "gmx pdb2gmx -f %s -o %s -p %s -ff %s -water %s"%\
+                (pdb, gro, top, ff, wat)
+        print (cmd)
+        os.system(cmd)
+
+    def build_box(self, out='conf_edit', d=1.0):
+        """
+        Generates the box for the system
+
+        Parameters
+        ----------
+        d : float
+            Distance between solute and box sides        
+        
+        """
+        gro = self.gro
+        cmd = 'gmx editconf -f %s -o %s -bt cubic -d %f -center' %(gro, out, d)
+        print (cmd)
+        os.system(cmd)
+
+    def solvate(self):
+        """
+        Solvates the system using gmx solvate
+
+        """
+        # choose a water topology file
+        water_dict  = {'tip3p' : 'spc216.gro'}
+        if self.water in water_dict.keys():
+            water_topol = water_dict[self.water]
+        else:
+            print ("Could not find a topology in 'w_top_dict' for water: %s" % self.water)
+            raise Exception("Invalid water model for GROMACS.")
+
+        'gmx genbox -cp out.gro -cs %s -p topol.top' % water_topol
+
+#    def ionize(self):
+#        """
+#        Adds ions for electroneutrality
+#
+#        """
+#        # format the water string
+#        ion_str = ''
+#        if self.run['Cl'] > 0:
+#            ion_str += '-nn %d ' % self.run['Cl']
+#        if self.run['Na'] > 0:
+#            ion_str += '-np %d ' % self.run['Na']
+ 
+#    def minimize(self)
+#
+#        mdpfile = self.write_minimization_mdp(i)
+#
+#        'gmx grompp -f %s -c out.gro -p topol.top' % mdpfile; \
+#        'echo SOL | gmx genion -s topol.tpr -o out.gro -p topol.top %s' % ion_str; \
+#        'gmx grompp -f %s -c out.gro -p topol.top' % mdpfile; \
+#        'gmx mdrun -v -s topol.tpr -x minimization.xtc -c processed_%s -g EM.log' % filepdb
+#        
+#        print(" running: ",cmd)
+#        p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#        out, err = p.communicate()
+#        return out, err
+
+
+    def runner():
         self.md_step = md_step
 
         # Take production or equilibration paths
@@ -98,38 +186,6 @@ class System(object):
         }
 
         return equilibration
-
-    def build_box(self, filepdb, i):
-
-        mdpfile = self.write_minimization_mdp(i)
-
-        # choose a water topology file
-        water_dict  = {'tip3p' : 'spc216.gro'}
-        if self.water in water_dict.keys():
-            water_topol = water_dict[self.water]
-        else:
-            print ("Could not find a topology in 'w_top_dict' for water: %s" % self.water)
-            raise Exception("Invalid water model for GROMACS.")
-
-        # format the water string
-        ion_str = ''
-        if self.run['Cl'] > 0:
-            ion_str += '-nn %d ' % self.run['Cl']
-        if self.run['Na'] > 0:
-            ion_str += '-np %d ' % self.run['Na']
-
-        cmd = \
-        'gmx editconf -f processed_%s -bt cubic -box %f %f %f -align 1 1 1' % (filepdb,self.run['box_size'],self.run['box_size'],self.run['box_size']); \
-        'gmx genbox -cp out.gro -cs %s -p topol.top' % water_topol; \
-        'gmx grompp -f %s -c out.gro -p topol.top' % mdpfile; \
-        'echo SOL | gmx genion -s topol.tpr -o out.gro -p topol.top %s' % ion_str; \
-        'gmx grompp -f %s -c out.gro -p topol.top' % mdpfile; \
-        'gmx mdrun -v -s topol.tpr -x minimization.xtc -c processed_%s -g EM.log' % filepdb
-        
-        print(" running: ",cmd)
-        p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate()
-        return out, err
 
    
     def write_mdp(self, i):
