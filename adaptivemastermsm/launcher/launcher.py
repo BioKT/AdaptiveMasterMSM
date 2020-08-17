@@ -23,23 +23,33 @@ class Launcher(object):
         Read input from system, run MD, and process output
         for the class analyzer
 
-        Args:
-            sysfile (str): File containing system information?
-            md_step (str): 'Equilibration' or 'Production'
-            water: water model for GROMACS (tip3p, ...)
-            filepdb (str): PDB file defining the system
-            wet_xtc_file (str)
-            dry_xtc_file (str)
-            last_wet_snapshot (str)
+        Parameters
+        ----------
+        sysfile : str
+            File containing system information?
+        md_step : str
+            'Equilibration' or 'Production'
+        water: str
+            water model for GROMACS (tip3p, ...)
+        filepdb : str
+            PDB file defining the system
+        wet_xtc_file : str
+            
+        dry_xtc_file : str
+            
+        last_wet_snapshot : str
+            
+        Returns
+        -------
+        trajfile : str
+            File containing processed trajectories
 
-        Return?:
-            trajfile (str): File containing processed trajectories
         """
         self.pdb = filepdb
         self.dry_xtc_file = dry_xtc_file
         self.last_wet_snapshot = last_wet_snapshot
-        # create an instance of system class to define the system and parameters
-        params = system.System(water, md_step, 1)
+
+        self.params = self.make_system()
 
         if params.md_step == 'Production':
             self.wet_xtc_file = wet_xtc_file           
@@ -111,6 +121,14 @@ class Launcher(object):
         self.clean_working_directory()
 
         return
+
+    def make_system(self):
+        """ 
+        Creates an instance of System class to define the system and parameters
+
+        """
+        params = system.System(self.water, self.md_step, 1)
+        return params
 
     def gen_tpr(self, gro, top, mdp, tpr, i):
         """

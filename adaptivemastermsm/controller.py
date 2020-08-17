@@ -20,29 +20,40 @@ from adaptivemastermsm.launcher import launcher
 class Controller(object):
     """
     Driver of the adaptive sampling algorithm
+
+
     """
 
     def __init__(self, pdb_fn, forcefield, water, nproc=1):
         """
         Iteratively, create a GROMACS file, launch, and analyze.
 
-        Args:
-            MD:
-                forcefield (str): amber96, ...
-                water: water model for GROMACS (tip3p, ...)
-            MSM:
-                mcs (int): min_cluster_size for HDBSCAN
-                ms (int): min_samples for HDBSCAN
-                lagt (float): lag time (in nanosec)
-                rate (bool): Compute K matrix, otherwise T will be calculated
-            AS:
-                pdb_fn (str): .pdb filename, also .gro can be provided
-                scoring function to use (str): count, popul
-                n_rounds (int): number of outer loops in AS algorithm
-                max_time (int): maximum simulation time in ns
-                n_samp_clus(int): number of samples per cluster
-        """
+        Parameters
+        ----------
+        forcefield:  str 
+            The force field used in MD (amber96, ...)
+        water: str
+            Water model for GROMACS (tip3p, ...)
+        mcs : int
+            min_cluster_size for HDBSCAN
+        ms : int
+            min_samples for HDBSCAN
+        lagt : float
+            lag time (in nanosec)  
+        rate : bool
+            Compute K matrix, otherwise T will be calculated
+        pdb_fn : str
+            PDB filename, also GRO can be provided
+        scoring : str
+            Scoring function to use (str): count, popul
+        n_rounds : int
+            Number of outer loops in AS algorithm
+        max_time : int
+            Maximum simulation time in ns
+        n_samp_clus : int
+            Number of samples per cluster
 
+        """
         # GLOBAL PARAMETERS #
         # try for instance pdb_fn='alaTB.gro', forcefield='amber96', water='tip3p'
         self.pdb_fn = pdb_fn
@@ -54,10 +65,8 @@ class Controller(object):
         
         # EQUILIBRATION #
         lau_eq = launcher.Launcher('Production', self.ff, self.water, \
-        self.pdb_fn, 'wetfn', dry_xtc_file='dryfn', last_wet_snapshot='lastwetfn')
-
-        end-here-now
-
+                self.pdb_fn, 'wetfn', dry_xtc_file='dryfn', \
+                last_wet_snapshot='lastwetfn')
 
         n = 0
         while True:
