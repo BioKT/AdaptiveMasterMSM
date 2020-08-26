@@ -8,25 +8,29 @@ import os
 import subprocess
 import shlex
 
+# AdaptiveMasterMSM
+from ..system import system_lib
+
 class System(object):
     """
     Create files to be able to run GROMACS
     """
 
-    def __init__(self, pdb, forcefield=None, water=None, topology=None):
+    def __init__(self, pdb, forcefield=None, water=None,\
+                 topology=None, constraints=None):
         """
         Parameters
         ----------
         pdb : str
             Path to the PDB or GRO file to start setup
         forcefield : str
-            Name of force field in Gromacs format (e.g. amber03, charmm27...)
+            Name of force field in Gromacs format (e.g. amber96)
         water : str
-            Water model for GROMACS (tip3p, spc, ...)
-        top : str
+            Water model for GROMACS (e.g. tip3p)
+        topology : str
             Path to topology TOP file
-        copy: int
-            Number to identify which copy of the system we are dealing with
+        constraints : str
+            Parameter for the minimization MDP file (e.g. h-bonds)
 
         """
         # Read user-defined parameters
@@ -36,9 +40,9 @@ class System(object):
             self.wat = water
         elif topology is not None:
             self.top = topology
-        #self.copy = copy
+        self.cons = constraints
     
-    def gen_top(self, gro='conf.gro', top='topol'):
+    def gen_top(self, gro='conf.gro', top='topol.top'):
         """
         Generates topology from structure file.
 
@@ -68,7 +72,7 @@ class System(object):
         print (cmd)
         os.system(cmd)
 
-    def solvate(self, inp='conf_edit.gro', out='conf_solv.gro'):
+    def solvate(self, inp='conf_edit.gro', out='conf_solv.gro', top='topol.top'):
         """
         Solvates the system using gmx solvate
 
@@ -81,11 +85,13 @@ class System(object):
             print ("Could not find a topology in 'w_top_dict' for water: %s" % self.wat)
             raise Exception("Invalid water model for GROMACS.")
 
-        cmd = 'gmx solvate -cp %s -cs %s -p topol.top -o %s' % (inp, water_topol, out)
+        cmd = 'gmx solvate -cp %s -cs %s -p %s -o %s' %\
+                (inp, water_topol, top, out)
         print (cmd)
         os.system(cmd)
 
-    def ionize(self, anion=0, cation=0, inp='conf_solv.gro', out='conf_solv_ions.gro'):
+    def ionize(self, anion=0, cation=0, inp='conf_solv.gro',\
+                out='conf_solv_ions.gro', top='topol.top', tpr='ions.tpr'):
         """
         Adds ions for electroneutrality
         
@@ -103,63 +109,40 @@ class System(object):
             ion_str += '-nn %d ' % anion
         if cation > 0:
             ion_str += '-np %d ' % cation
-        mdpfile = self.write_minimization_mdp()
-        cmd = 'gmx grompp -f %s -c %s -p topol.top -o ions.tpr' % (mdpfile, inp) &\
-        'gmx genion -s ions.tpr -o %s -p topol.top %s' % (out, ion_str)
-        print(" running: ",cmd)
-        p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.mdpfile = system_lib.write_minimization_mdp(self.cons)
+        cmd = "gmx grompp -f %s -c %s -p %s -o %s; gmx genion -s %s -o %s -p %s %s"\
+                % (self.mdpfile, inp, top, tpr, tpr, out, top, ion_str)
+        print(cmd)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         output, error = p.communicate()
         return output, error
  
-    def minimize(self, inp='conf_solv_ions.gro'):
+    def minimize(self, inp='conf_solv_ions.gro', top='topol.top'):
 
-        mdpfile = self.write_minimization_mdp()
-        cmd = 'gmx grompp -f %s -c %s -p topol.top -o minimization & gmx mdrun -v -s minimization -x minimization.xtc -deffnm minimization'\
-                % (mdpfile, inp)
-        print(" running: ",cmd)
-        p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.mdpfile = system_lib.write_minimization_mdp(self.cons)
+        cmd = 'gmx grompp -f %s -c %s -p %s -o minimization; gmx mdrun -v -s minimization -x minimization.xtc -deffnm minimization'\
+                % (self.mdpfile, inp, top)
+        print(cmd)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         output, error = p.communicate()
         return output, error
 
-    def write_minimization_mdp(self):
+    def nvt(self, mdp='nvt.mdp', gro='minimization.gro',\
+            top='topol.top', tpr='nvt.tpr', out='nvt'):
 
-        txt = """; GROMACS mdp minimization options
-    integrator               = steep
-    emstep                   = 0.001
-    emtol                    = 10.0
-    nsteps                   = 50000
-    nstxout                  = 0
-    nstvout                  = 0
-    nstlog                   = 10
-    nstenergy                = 0
-    nstxtcout                = 0
-    xtc_grps                 = System
-    energygrps               = 
-    nstlist                  = 1
-    ns_type                  = grid
-    pbc                      = xyz
-    periodic_molecules       = no
-    rlist                    = 1.0
-    rcoulomb                 = 1.0
-    rvdw                     = 1.0
-    tcoupl                   = no
-    Pcoupl                   = no
-    gen_vel                  = yes
-    constraints              = none
-    continuation             = no
-    morse                    = no
-    implicit_solvent         = no
-    """
-        
-        # ion: poner flag para check si existe ya el file
-        filemdp = "data/minimization.mdp"
-        try:
-            f = open(filemdp, 'w')
-            f.write(txt)
-        except IOError:
-            os.makedirs(filemdp[:filemdp.rfind("/")])
-            f = open(filemdp, "w")
-            f.write(txt)
-        f.close()
+        cmd = 'gmx grompp -f %s -c %s -r %s -p %s -o %s; gmx mdrun -v -s %s -deffnm %s'\
+                % (mdp, gro, gro, top, tpr, tpr, out)
+        print(cmd)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        output, error = p.communicate()
+        return output, error
 
-        return filemdp
+    def npt(self, mdp='npt.mdp', gro='nvt.gro', chk='nvt.cpt',\
+            top='topol.top', tpr='npt.tpr', out='npt'):
+
+        cmd = 'gmx grompp -f %s -c %s -r %s -t %s -p %s -o %s; gmx mdrun -v -s %s -deffnm %s'\
+                % (mdp, gro, gro, chk, top, tpr, tpr, out)
+        print(cmd)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        output, error = p.communicate()
+        return output, error

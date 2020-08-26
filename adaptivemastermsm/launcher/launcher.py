@@ -18,8 +18,7 @@ class Launcher(object):
     Call GROMACS and process output to pass it to class analyzer
     """
 
-    def __init__(self, md_step, pdb, forcefield, water, \
-            wet_xtc_file,  dry_xtc_file=None, last_wet_snapshot=None):
+    def __init__(self, md_step, pdb, forcefield, water):
         """
         Read input from system, run MD, and process output
         for the class analyzer
@@ -34,108 +33,132 @@ class Launcher(object):
             Name of force field in Gromacs format (e.g. amber03, charmm27...)
         water : str
             Water model for in Gromacs format (e.g. tip3p...)
-        wet_xtc_file : str
-
-        dry_xtc_file : str
-            
-        last_wet_snapshot : str
 
         """
+
         self.pdb = pdb
-        self.dry_xtc_file = dry_xtc_file
-        self.last_wet_snapshot = last_wet_snapshot
+        self.ff = forcefield
+        self.wat = water
 
-        if md_step == 'Production':
-            self.wet_xtc_file = wet_xtc_file           
-            n_short_runs = 2 # this will be managed by controller
+        if md_step == 'Equilibration':
+            print ("md_step %s not valid" % md_step)
+            raise Exception("Launcher only works with 'Production'")
 
-            # ndx ? use this to set positions of ligands in future work
-            for i in range(n_short_runs):
+    def runner(self, gmxinput):
+        """
+        Call MDRUN via multiprocessing
 
-                mdp = self.gen_mdp(i)
-                # different resampling positions:
-                gro = "data/gro/%s.gro" % i
-                launcher_lib.checkfile(gro)
-                cmd = "cp %s data/gro/%s.gro" % (self.pdb, i)
-                os.system(cmd)
+        """
+        # set multiprocessing options
+        n_threads = mp.cpu_count()
+        pool = mp.Pool(processes=n_threads)
+        # run simulations
+        results = []
+        for x in gmxinput:
+            results.append(pool.apply_async(self.gromacs_worker, [x]))
+        # close the pool and wait for each running task to complete
+        pool.close()
+        pool.join()
+        for result in results:
+            out, err = result.get()
+            print("out: {} err: {}".format(out, err))
+
+        launcher_lib.clean_working_directory()
+
+    def inputs(self, gro_all, top_all=None, chk=None, mdp_params=None, mdp=None):
+        """
+        Prepare directories and files for all copies and launch all of them
+        
+        Parameters
+        ----------
+        gro_all : str
+            List of paths to gro files corresponding to different
+            resamplings separated by spaces only (omit commas)
+        top_all : str
+            List of paths to topology (top) files
+        chk : str
+            Path to checkpoint file
+        mdp_params : dict
+            Parameters for the MDP file defined on class Controller
+        mdp_all : str
+            Path to mdp file, only compatible with mdp_params=None
+
+        """
+
+        """
+        !!! something here to filter bad or missing gro files,
+        maybe this work if a single one is passed
+        if len(gro_all.split()) == 1:
+            gro = "data/gro/%s.gro" % i
+            launcher_lib.checkfile(gro)
+            cmd = "cp %s data/gro/%s.gro" % (self.pdb, i)
+            os.system(cmd)
+        """
+
+        if top_all is None:
+            top_all_list = []
+            for i in range(len(gro_all.split())):
                 top = "data/top/%s.top" % i
                 launcher_lib.checkfile(top)
+                top_all_list.append(top)
+        else:
+            top_all_list = top_all.split()
+
+        # ndx ? use this to set positions of ligands in future work
+        gmxinput = []
+        i = 0
+        for gro in gro_all.split():
+
+            gro_out = "data/gro/processed/%s.gro" % i
+            launcher_lib.checkfile(gro_out)
+            top = top_all_list[i]
+            top_out = "data/top/processed/%s.top" % i
+            launcher_lib.checkfile(top_out)
+            cmd = "cp %s %s" % (top, top_out)
+            os.system(cmd)
+            if top_all is None:
+                cmd = 'gmx pdb2gmx -f %s -o %s -p %s -ff %s -water %s'%\
+                      (gro, gro_out, top_out, self.ff, self.wat)
+                print(cmd)
+                os.system(cmd)
                 itp = "data/itp/%s.itp" % i
                 launcher_lib.checkfile(itp)
-                cmd = 'gmx pdb2gmx -f %s -o processed_%s -ff %s -water %s'%\
-                      (gro, self.pdb, forcefield, water)
-                print(" running: ",cmd)
-                p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                output, error = p.communicate()
-                #print(output, error)
-                cmd = "mv processed_%s %s & mv topol.top %s & mv posre.itp %s"%\
-                      (self.pdb, gro, top, itp)
+                cmd = "mv posre.itp %s" % itp
                 os.system(cmd)
-                out = "data/tpr/%s.tpr" % i
-                output, error = self.gen_tpr(gro, top, mdp, out, i)
+            else:
+                cmd = "cp %s %s" % (gro, gro_out)
+                os.system(cmd)
+            if mdp is None: mdp = self.gen_mdp(i, mdp_params)
+            out = "data/tpr/%s.tpr" % i
+            self.gen_tpr(gro_out, top_out, mdp, out, i, chk=chk)
+            gmxinput.append([out,gro_out])
+            i += 1
 
-            # set multiprocessing options
-            n_threads = mp.cpu_count()
-            pool = mp.Pool(processes=n_threads)
-            # run simulations
-            gmxinput = [[out, gro] for i in range(n_short_runs)]
-            results = []
-            for x in gmxinput:
-                results.append(pool.apply_async(self.gromacs_worker, [x]))
-            # close the pool and wait for each running task to complete
-            pool.close()
-            pool.join()
-            for result in results:
-                out, err = result.get()
-                print("out: {} err: {}".format(out, err))
-
-        elif md_step == 'Equilibration':
-            # first equilibrate
-            # build_box, etc
-            user_wet_xtc_file = wet_xtc_file
-            self.wet_xtc_file = 'equilibration.xtc'
-            self.run_md(4, params)
-
-            # then production
-            # p.md_step = 'Production'  #ionix, ojo aqui, por eso i+1=2
-            p_prod = system.System(water, 'Production', 2)
-            self.wet_xtc_file = user_wet_xtc_file
-            self.run_md(4, p_prod)
-
-        self.clean_working_directory()
-
-        return
-
-    def make_system(self, ff, wat):
-        """ 
-        Creates an instance of System class to define the system and parameters
-
-        """
-        params = system.System(self.pdb, forcefield=ff, water=wat, copy=1)
-        return params
-
-    def gen_tpr(self, gro, top, mdp, tpr, i):
+        return gmxinput
+    
+    def gen_tpr(self, gro, top, mdp, tpr, i, chk=None):
         """
         Function for generating tpr files
 
         """
         launcher_lib.checkfile(tpr)
-        cmd = "gmx grompp -c %s -p %s -f %s -o %s -maxwarn 1"\
+        if chk is not None:
+            cmd = "gmx grompp -c %s -p %s -f %s -t %s -o %s -maxwarn 1"\
+                %(gro, top, mdp, chk, tpr)
+        else:
+            cmd = "gmx grompp -c %s -p %s -f %s -o %s -maxwarn 1"\
                 %(gro, top, mdp, tpr)
-        print(" running: ",cmd)
-        p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate()
-        # print(out, err)
+        print(cmd)
+        os.system(cmd)
         cmd = "mv mdout.mdp data/mdp/%s_out.mdp" % i
         os.system(cmd)
-        return out, err
     
-    def gen_mdp(self, i):
+    def gen_mdp(self, i, mdp_params):
         """ 
         Generate Gromacs parameter input file (mdp)
         
         """
-        txt = launcher_lib.write_mdp()
+        txt = launcher_lib.write_mdp(mdp_params)
         filemdpout = "data/mdp/%s.mdp" % i
         launcher_lib.checkfile(filemdpout)
         out = open(filemdpout, "w")
@@ -151,20 +174,17 @@ class Launcher(object):
     def gromacs_worker(self, x):
         """
         Worker function for running Gromacs jobs
-        
-        md_step = x[0]
-        tpr = x[1]
-        mdp = x[2]
-        n_threads = x[3]
-        """
 
-        print(x)
+        -->Shall we use 'multi' flag from Gromacs?
+
+        """
+        #print(x)
         tpr = x[0]
         out = x[1]
 
         # run simulation
         cmd = "gmx mdrun -v -s %s -deffnm %s"%(tpr, out)
-        print(" running: ",cmd)
+        print(cmd)
         p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
         return (out, err)
@@ -181,7 +201,7 @@ class Launcher(object):
                 % (params.filemdp, self.pdb) &\
                 'gmx mdrun -nt %d -s topol.tpr -x %s -c processed_%s -g prod.log' % \
                 (n_threads, self.pdb, self.wet_xtc_file)
-        print(" running: ",cmd)
+        print(cmd)
         p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
 
@@ -189,27 +209,14 @@ class Launcher(object):
         if params.md_step == 'Production':
             assert self.dry_xtc_file is not None and self.last_wet_snapshot is not None
             cmd = 'echo 0 | gmx trjconv -f end.gro -s topol.tpr -o %s -pbc whole' % self.last_wet_snapshot
-            print(" running: ",cmd)
+            print(cmd)
             p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = p.communicate()
             #print(output, error)
             cmd = 'echo PROTEIN | gmx trjconv -f %s -s topol.tpr -o %s -pbc whole' % (self.wet_xtc_file, self.dry_xtc_file)
-            print(" running: ",cmd)
+            print(cmd)
             p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = p.communicate()
             #print(output, error)
 
         return (out, err)
-
-    def clean_working_directory(self):
-
-        print ("Cleaning up...")
-        os.system('rm \#*')
-        os.system('mkdir logs')
-        os.system('mv *.log logs')
-        os.system('rm *.trr *.top *.itp *.edr *.cpt *.tpr out.gro conf.gro')
-        os.system('mv equilibration.xtc *.mdp *.gro logs')
-    
-        return
-
-

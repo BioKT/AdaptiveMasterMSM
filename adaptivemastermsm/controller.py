@@ -13,17 +13,13 @@ import matplotlib.pyplot as plt
 # Multiprocessing
 import multiprocessing as mp
 # AdaptiveMasterMSM
-from adaptivemastermsm.launcher import launcher
-###from adaptivemastermsm.analyzer import analyzer
-###from adaptivemastermsm.system import system
+from adaptivemastermsm import controller_lib
 
 class Controller(object):
     """
     Driver of the adaptive sampling algorithm
 
-
     """
-
     def __init__(self):
         """
         Iteratively, create a GROMACS file, launch, and analyze.
@@ -49,98 +45,22 @@ class Controller(object):
 
         """
         # GLOBAL PARAMETERS #
+        
 
-        """
-        # try for instance pdb_fn='alaTB.gro', forcefield='amber96', water='tip3p'
-        self.pdb_fn = pdb_fn
-        self.ff = forcefield
-        self.water = water        
-        # EQUILIBRATION #
-        lau_eq = launcher.Launcher('Production', self.ff, self.water, \
-                self.pdb_fn, 'wetfn', dry_xtc_file='dryfn', \
-                last_wet_snapshot='lastwetfn')
-        """
-
-
-    def runner(self, md_step):
+    def run_parameters(self, md_step):
 
         self.md_step = md_step
+        self.run = {}
         # Take production or equilibration paths
         if self.md_step == 'Equilibration':
-            self.driver_equilibration()
+            controller_lib.driver_equilibration(self.run)
         elif self.md_step == 'Production':
-            self.driver_production()
+            controller_lib.driver_production(self.run)
         else:
             print ("md_step %s not valid" % self.md_step)
             raise Exception("It must be 'Production' or 'Equilibration'")
 
         return
-        
-    def driver_equilibration(self):
-    
-        equil = self.set_equilibration()
-        self.run = {}
-        equil['total_steps'] = \
-            int(equil['total_time'] / equil['timestep'])
-        
-        for p in equil.keys():
-            self.run[p] = equil[p]
-
-        return           
-
-    def driver_production(self):
-
-        prod = self.set_production()
-        self.run = {}
-        prod['total_steps'] = \
-            int(prod['total_time'] / prod['timestep'])
-
-        for p in prod.keys():
-            self.run[p] = prod[p]
-
-        return
-
-    def set_production(self):
-        """
-        Parameters for the MD production run
-
-        """
-        production = {
-            'timestep'       : 0.002,         # ps
-            'total_time'     : 1,             # ps / 10ns
-            'log_freq'       : 10000,         # timesteps / 20ps
-            'xtc_freq'       : 100,           # timesteps
-            'temperature'    : 300,           # Kelvin
-            'thermostat'     : 'Nose-Hoover', # type
-            'box_size'       : 3.5,           # Angstroms
-            'barostat'       : 'No',          # No barostat
-            'pressure'       : 1,             # pressure
-            'Cl'             : 0,             # number Cl's
-            'Na'             : 0              # number Na's
-        }
-
-        return production
-
-    def set_equilibration(self):
-        """
-        Parameters for the MD equilibration run
-
-        """
-        equilibration = {
-            'timestep'       : 0.002,         # ps
-            'total_time'     : 1,             # ps
-            'barostat'       : 'berendsen',   # type
-            'pressure'       : 1,             # bar
-            'log_freq'       : 10000,         # timesteps / 20ps
-            'xtc_freq'       : 100,           # timesteps
-            'temperature'    : 300,           # Kelvin
-            'thermostat'     : 'Nose-Hoover', # type
-            'box_size'       : 1.0,           # Angstroms
-            'Cl'             : 0,             # number Cl's
-            'Na'             : 0              # number Na's
-        }
-
-        return equilibration
 
     def adaptive_sampling(self):
         
