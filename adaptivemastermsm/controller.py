@@ -13,27 +13,19 @@ import matplotlib.pyplot as plt
 # Multiprocessing
 import multiprocessing as mp
 # AdaptiveMasterMSM
-from adaptivemastermsm.launcher import launcher
-###from adaptivemastermsm.analyzer import analyzer
-###from adaptivemastermsm.system import system
+from adaptivemastermsm import controller_lib
 
 class Controller(object):
     """
     Driver of the adaptive sampling algorithm
 
-
     """
-
-    def __init__(self, pdb_fn, forcefield, water, nproc=1):
+    def __init__(self):
         """
         Iteratively, create a GROMACS file, launch, and analyze.
 
         Parameters
         ----------
-        forcefield:  str 
-            The force field used in MD (amber96, ...)
-        water: str
-            Water model for GROMACS (tip3p, ...)
         mcs : int
             min_cluster_size for HDBSCAN
         ms : int
@@ -42,8 +34,6 @@ class Controller(object):
             lag time (in nanosec)  
         rate : bool
             Compute K matrix, otherwise T will be calculated
-        pdb_fn : str
-            PDB filename, also GRO can be provided
         scoring : str
             Scoring function to use (str): count, popul
         n_rounds : int
@@ -55,19 +45,27 @@ class Controller(object):
 
         """
         # GLOBAL PARAMETERS #
-        # try for instance pdb_fn='alaTB.gro', forcefield='amber96', water='tip3p'
-        self.pdb_fn = pdb_fn
-        self.ff = forcefield
-        self.water = water
+        
 
+    def run_parameters(self, md_step):
+
+        self.md_step = md_step
+        self.run = {}
+        # Take production or equilibration paths
+        if self.md_step == 'Equilibration':
+            controller_lib.driver_equilibration(self.run)
+        elif self.md_step == 'Production':
+            controller_lib.driver_production(self.run)
+        else:
+            print ("md_step %s not valid" % self.md_step)
+            raise Exception("It must be 'Production' or 'Equilibration'")
+
+        return
+
+    def adaptive_sampling(self):
+        
         n_rounds = 10
         max_time = 100
-        
-        # EQUILIBRATION #
-        lau_eq = launcher.Launcher('Production', self.ff, self.water, \
-                self.pdb_fn, 'wetfn', dry_xtc_file='dryfn', \
-                last_wet_snapshot='lastwetfn')
-
         n = 0
         while True:
             n += 1
