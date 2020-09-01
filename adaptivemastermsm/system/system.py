@@ -11,6 +11,14 @@ import shlex
 # AdaptiveMasterMSM
 from ..system import system_lib
 
+def check_gmx():
+    """
+    Checks the available Gromacs version.
+    
+    """
+    output = subprocess.check_output("which gmx", shell=True)
+    print ("%s"%output)
+
 class System(object):
     """
     Create files to be able to run GROMACS
@@ -71,6 +79,7 @@ class System(object):
         cmd = 'gmx editconf -f %s -o %s -c -d %f -bt cubic' %(gro, out, d)
         print (cmd)
         os.system(cmd)
+        self.gro = out 
 
     def solvate(self, inp='conf_edit.gro', out='conf_solv.gro', top='topol.top'):
         """
@@ -89,33 +98,41 @@ class System(object):
                 (inp, water_topol, top, out)
         print (cmd)
         os.system(cmd)
+        self.gro = out
 
-    def ionize(self, anion=0, cation=0, inp='conf_solv.gro',\
+    def ionize(self, neutral=True, conc=None, inp='conf_solv.gro',\
                 out='conf_solv_ions.gro', top='topol.top', tpr='ions.tpr'):
         """
-        Adds ions for electroneutrality
+        Adds ions for electroneutrality and / or target concentration.
         
         Parameters
         ----------
-        anion: int
-            self.run['Cl']
-        cation: int
-            self.run['Na']
+        neutral : bool
+            Whether we neutralize the simulation box.
+        conc : float
+            The target salt concentration in M.
 
         """
         # format the water string
-        ion_str = ''
-        if anion > 0:
-            ion_str += '-nn %d ' % anion
-        if cation > 0:
-            ion_str += '-np %d ' % cation
+        if not conc:
+            ion_str = '-neutral'
+        else:
+            ion_str = '-conc %g'%conc
+
+        # generate the tpr file required for gmx genion
         self.mdpfile = system_lib.write_minimization_mdp(self.cons)
-        cmd = "gmx grompp -f %s -c %s -p %s -o %s; gmx genion -s %s -o %s -p %s %s"\
-                % (self.mdpfile, inp, top, tpr, tpr, out, top, ion_str)
+        cmd = "gmx grompp -f %s -c %s -p %s -o %s"%(self.mdpfile, inp, top, tpr)
         print(cmd)
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         output, error = p.communicate()
-        return output, error
+
+        # runs genion 
+        cmd = "gmx genion -s %s -o %s -p %s %s"%(tpr, out, top, ion_str)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        output, error = p.communicate()
+        print(cmd)
+        #return output, error
+        self.gro = out
  
     def minimize(self, inp='conf_solv_ions.gro', top='topol.top'):
 
@@ -123,6 +140,7 @@ class System(object):
         cmd = 'gmx grompp -f %s -c %s -p %s -o minimization; gmx mdrun -v -s minimization -x minimization.xtc -deffnm minimization'\
                 % (self.mdpfile, inp, top)
         print(cmd)
+
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         output, error = p.communicate()
         return output, error
