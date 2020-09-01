@@ -2,8 +2,6 @@
 This file is part of the AdaptiveMasterMSM package.
 
 """
-#!/usr/bin/env python
-
 import os
 import subprocess
 import shlex
@@ -133,34 +131,39 @@ class System(object):
         print(cmd)
         #return output, error
         self.gro = out
- 
-    def minimize(self, inp='conf_solv_ions.gro', top='topol.top'):
 
-        self.mdpfile = system_lib.write_minimization_mdp(self.cons)
-        cmd = 'gmx grompp -f %s -c %s -p %s -o minimization; gmx mdrun -v -s minimization -x minimization.xtc -deffnm minimization'\
-                % (self.mdpfile, inp, top)
-        print(cmd)
-
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        output, error = p.communicate()
-        return output, error
-
-    def nvt(self, mdp='nvt.mdp', gro='minimization.gro',\
-            top='topol.top', tpr='nvt.tpr', out='nvt'):
-
-        cmd = 'gmx grompp -f %s -c %s -r %s -p %s -o %s; gmx mdrun -v -s %s -deffnm %s'\
-                % (mdp, gro, gro, top, tpr, tpr, out)
-        print(cmd)
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        output, error = p.communicate()
-        return output, error
-
-    def npt(self, mdp='npt.mdp', gro='nvt.gro', chk='nvt.cpt',\
-            top='topol.top', tpr='npt.tpr', out='npt'):
-
-        cmd = 'gmx grompp -f %s -c %s -r %s -t %s -p %s -o %s; gmx mdrun -v -s %s -deffnm %s'\
-                % (mdp, gro, gro, chk, top, tpr, tpr, out)
-        print(cmd)
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        output, error = p.communicate()
-        return output, error
+#    def minimize(self, inp='conf_solv_ions.gro', top='topol.top', out='minimization'):
+#        """
+#        Runs minimization invoking the Launcher class
+#
+#        """
+#        self.mdpfile = system_lib.write_minimization_mdp(self.cons)
+#        cmd = 'gmx grompp -f %s -c %s -p %s -o %s'% (self.mdpfile, inp, top, out)
+#        print(cmd)
+#        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+#        output, error = p.communicate()
+#
+#        cmd = 'gmx mdrun -v -s %s.tpr -deffnm %s'%(out, out)
+#        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+#        output, error = p.communicate()
+#        self.gro = out + ".gro"
+#
+#    def nvt(self, mdp='nvt.mdp', gro='minimization.gro',\
+#            top='topol.top', tpr='nvt.tpr', out='nvt'):
+#
+#        cmd = 'gmx grompp -f %s -c %s -r %s -p %s -o %s; gmx mdrun -v -s %s -deffnm %s'\
+#                % (mdp, gro, gro, top, tpr, tpr, out)
+#        print(cmd)
+#        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+#        output, error = p.communicate()
+#        return output, error
+#
+#    def npt(self, mdp='npt.mdp', gro='nvt.gro', chk='nvt.cpt',\
+#            top='topol.top', tpr='npt.tpr', out='npt'):
+#
+#        cmd = 'gmx grompp -f %s -c %s -r %s -t %s -p %s -o %s; gmx mdrun -v -s %s -deffnm %s'\
+#                % (mdp, gro, gro, chk, top, tpr, tpr, out)
+#        print(cmd)
+#        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+#        output, error = p.communicate()
+#        return output, error
