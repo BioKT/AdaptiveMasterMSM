@@ -46,12 +46,10 @@ class Launcher(object):
         #    cmd = "gmx grompp -c %s -p %s -f %s -t %s -o %s -maxwarn 1"\
         #        %(gro, top, mdp, chk, tpr)
         #else:
-        cmd = "gmx grompp -c %s -p %s -f %s -o %s"\
-                %(self.system.gro, self.system.top, mdp, tpr)
+        cmd = "gmx grompp -c %s -p %s -f %s -o %s -r %s"\
+                %(self.system.gro, self.system.top, mdp, tpr, self.system.gro)
         print(cmd)
         os.system(cmd)
-        #cmd = "mv mdout.mdp data/mdp/%s_out.mdp" % i
-        #os.system(cmd)
         self.tpr = tpr
 
     def gmx_run(self, out='out'):
@@ -72,9 +70,12 @@ class Launcher(object):
                 stdout=subprocess.PIPE, \
                 stderr=subprocess.PIPE)
         output, error = p.communicate()
+
         self.output = output
         self.error = error
         self.out = out
+        # after the run we replace the gro in the system for the output gro file
+        self.system.gro =  "%s.gro"%out
 
 #    def runner(self, tpr, out):
 #        """
