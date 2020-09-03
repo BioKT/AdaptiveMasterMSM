@@ -46,8 +46,18 @@ class Launcher(object):
         #    cmd = "gmx grompp -c %s -p %s -f %s -t %s -o %s -maxwarn 1"\
         #        %(gro, top, mdp, chk, tpr)
         #else:
+        filemdp = mdp
+        if mdp in ["min","nvt","npt"]:
+            if mdp is "min": txt = launcher_lib.write_mdp_min()
+            if mdp is "nvt": txt = launcher_lib.write_mdp_nvt()
+            if mdp is "npt": txt = launcher_lib.write_mdp_npt()
+            filemdp = "data/mdp/%s.mdp" % mdp
+            #launcher_lib.checkfile(filemdp)
+            inp = open(filemdp, "w")
+            inp.write(txt)
+            inp.close()
         cmd = "gmx grompp -c %s -p %s -f %s -o %s -r %s"\
-                %(self.system.gro, self.system.top, mdp, tpr, self.system.gro)
+                %(self.system.gro, self.system.top, filemdp, tpr, self.system.gro)
         print(cmd)
         os.system(cmd)
         self.tpr = tpr
@@ -174,7 +184,7 @@ class Launcher(object):
         Generate Gromacs parameter input file (mdp)
         
         """
-        txt = launcher_lib.write_mdp(mdp_params)
+        txt = launcher_lib.write_mdp_user(mdp_params)
         filemdpout = "data/mdp/%s.mdp" % i
         launcher_lib.checkfile(filemdpout)
         out = open(filemdpout, "w")
