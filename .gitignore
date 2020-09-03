@@ -1,0 +1,5 @@
+# exclude everything that has these looks
+\#*
+*xtc
+*tpr
+*pyc

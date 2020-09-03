@@ -2,8 +2,6 @@
 This file is part of the AdaptiveMasterMSM package.
 
 """
-#!/usr/bin/env python
-
 import sys, os
 import subprocess
 import shlex
@@ -18,52 +16,87 @@ class Launcher(object):
     Call GROMACS and process output to pass it to class analyzer
     """
 
-    def __init__(self, md_step, pdb, forcefield, water):
+    def __init__(self, simsys):
         """
         Read input from system, run MD, and process output
         for the class analyzer
 
         Parameters
         ----------
-        md_step : str
-            'Equilibration' or 'Production'
-        pdb : str
-            Path to the PDB or GRO file to start setup
-        forcefield : str
-            Name of force field in Gromacs format (e.g. amber03, charmm27...)
-        water : str
-            Water model for in Gromacs format (e.g. tip3p...)
+        simsys : object
+            An instance of the System class.
 
         """
+        Launcher.system = simsys
 
-        self.pdb = pdb
-        self.ff = forcefield
-        self.wat = water
-
-        if md_step == 'Equilibration':
-            print ("md_step %s not valid" % md_step)
-            raise Exception("Launcher only works with 'Production'")
-
-    def runner(self, gmxinput):
+    def gen_tpr(self, mdp=None, tpr='out.tpr'): #, i, chk=None):
         """
-        Call MDRUN via multiprocessing
+        Function for generating tpr files
+
+        Parameters
+        ----------
+        mdp : str
+            The parameter input file
+        tpr : str
+            The Gromacs run input file
 
         """
-        # set multiprocessing options
-        n_threads = mp.cpu_count()
-        pool = mp.Pool(processes=n_threads)
-        # run simulations
-        results = []
-        for x in gmxinput:
-            results.append(pool.apply_async(self.gromacs_worker, [x]))
-        # close the pool and wait for each running task to complete
-        pool.close()
-        pool.join()
-        for result in results:
-            out, err = result.get()
-            print("out: {} err: {}".format(out, err))
+        #launcher_lib.checkfile(tpr)
+        #if chk is not None:
+        #    cmd = "gmx grompp -c %s -p %s -f %s -t %s -o %s -maxwarn 1"\
+        #        %(gro, top, mdp, chk, tpr)
+        #else:
+        cmd = "gmx grompp -c %s -p %s -f %s -o %s -r %s"\
+                %(self.system.gro, self.system.top, mdp, tpr, self.system.gro)
+        print(cmd)
+        os.system(cmd)
+        self.tpr = tpr
 
-        launcher_lib.clean_working_directory()
+    def gmx_run(self, out='out'):
+        """
+        Runs MD simulations using gmx mdrun
+
+        Parameters
+        ----------
+        tpr : str
+            Gromacs run input file
+        out : str
+            Root filename for output
+
+        """
+        cmd = "gmx mdrun -v -s %s -deffnm %s"%(self.tpr, out)
+        print(cmd)
+        p = subprocess.Popen(shlex.split(cmd), \
+                stdout=subprocess.PIPE, \
+                stderr=subprocess.PIPE)
+        output, error = p.communicate()
+
+        self.output = output
+        self.error = error
+        self.out = out
+        # after the run we replace the gro in the system for the output gro file
+        self.system.gro =  "%s.gro"%out
+
+#    def runner(self, tpr, out):
+#        """
+#        Call MDRUN via multiprocessing
+#
+#        """
+#        # set multiprocessing options
+#        n_threads = mp.cpu_count()
+#        pool = mp.Pool(processes=n_threads)
+#        # run simulations
+#        results = []
+#        for x in gmxinput:
+#            results.append(pool.apply_async(self.gromacs_worker, [x]))
+#        # close the pool and wait for each running task to complete
+#        pool.close()
+#        pool.join()
+#        for result in results:
+#            out, err = result.get()
+#            print("out: {} err: {}".format(out, err))
+#
+#        launcher_lib.clean_working_directory()
 
     def inputs(self, gro_all, top_all=None, chk=None, mdp_params=None, mdp=None):
         """
@@ -135,23 +168,6 @@ class Launcher(object):
             i += 1
 
         return gmxinput
-    
-    def gen_tpr(self, gro, top, mdp, tpr, i, chk=None):
-        """
-        Function for generating tpr files
-
-        """
-        launcher_lib.checkfile(tpr)
-        if chk is not None:
-            cmd = "gmx grompp -c %s -p %s -f %s -t %s -o %s -maxwarn 1"\
-                %(gro, top, mdp, chk, tpr)
-        else:
-            cmd = "gmx grompp -c %s -p %s -f %s -o %s -maxwarn 1"\
-                %(gro, top, mdp, tpr)
-        print(cmd)
-        os.system(cmd)
-        cmd = "mv mdout.mdp data/mdp/%s_out.mdp" % i
-        os.system(cmd)
     
     def gen_mdp(self, i, mdp_params):
         """ 

@@ -1,0 +1,27 @@
+define 			= -DPOSRES
+integrator 		= md 
+dt			= 0.002 ; ps
+nsteps 			= 50000 ; 100 ps
+nstlog			= 1000
+nstenergy		= 1000
+nstxout-compressed	= 1000
+constraint_algorithm    = lincs  
+constraints             = h-bonds
+lincs_iter              = 1      
+lincs_order             = 4      
+nstlist			= 10
+ns_type			= grid
+cutoff-scheme		= verlet
+coulombtype             = pme
+rvdw                    = 1.
+rcoulomb                = 1.
+# with PME we should not have to use coupling groups
+tcoupl			= v-rescale
+tc_grps                 = protein non-protein
+tau_t                   = 0.1	0.1 
+ref_t                   = 300	300
+Pcoupl                  = no
+pbc			= xyz
+gen_vel                 = yes
+gen_temp                = 10.0
+gen_seed                = -1
