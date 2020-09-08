@@ -3,10 +3,10 @@ This file is part of the AdaptiveMasterMSM package.
 
 """
 # Tools
-import h5py
 import copy
-###import random
-###rand = lambda: random.randint(0, 255)
+#import h5py
+#import random
+#rand = lambda: random.randint(0, 255)
 # Maths
 import numpy as np
 # Plotting
@@ -82,7 +82,7 @@ class Controller(object):
 
         # Generate topology file
         if self.top is None:
-            topology = 'topol.gro'
+            topology = 'topol.top'
             if ".gro" in gro:
                 self.system.gen_top(gro=gro)
             else:
