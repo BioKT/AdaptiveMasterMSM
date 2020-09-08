@@ -46,8 +46,18 @@ class Launcher(object):
         #    cmd = "gmx grompp -c %s -p %s -f %s -t %s -o %s -maxwarn 1"\
         #        %(gro, top, mdp, chk, tpr)
         #else:
+        filemdp = mdp
+        if mdp in ["min","nvt","npt"]:
+            if mdp is "min": txt = launcher_lib.write_mdp_min()
+            if mdp is "nvt": txt = launcher_lib.write_mdp_nvt()
+            if mdp is "npt": txt = launcher_lib.write_mdp_npt()
+            filemdp = "data/mdp/%s.mdp" % mdp
+            launcher_lib.checkfile(filemdp)
+            inp = open(filemdp, "w")
+            inp.write(txt)
+            inp.close()
         cmd = "gmx grompp -c %s -p %s -f %s -o %s -r %s"\
-                %(self.system.gro, self.system.top, mdp, tpr, self.system.gro)
+                %(self.system.gro, self.system.top, filemdp, tpr, self.system.gro)
         print(cmd)
         os.system(cmd)
         self.tpr = tpr
@@ -174,7 +184,7 @@ class Launcher(object):
         Generate Gromacs parameter input file (mdp)
         
         """
-        txt = launcher_lib.write_mdp(mdp_params)
+        txt = launcher_lib.write_mdp_user(mdp_params)
         filemdpout = "data/mdp/%s.mdp" % i
         launcher_lib.checkfile(filemdpout)
         out = open(filemdpout, "w")
@@ -203,36 +213,4 @@ class Launcher(object):
         print(cmd)
         p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
-        return (out, err)
-
-    def run_md(self, n_threads, params):
-        """
-        worker provisional para 'Equilibration'
-        """
-
-        # note for the moment wet_xtc_file, dry_xtc_file and last_wet_snapshot
-        # overwrite each other, until I see their need
-
-        cmd = 'gmx grompp -f %s -c processed_%s -p topol.top -maxwarn 1'\
-                % (params.filemdp, self.pdb) &\
-                'gmx mdrun -nt %d -s topol.tpr -x %s -c processed_%s -g prod.log' % \
-                (n_threads, self.pdb, self.wet_xtc_file)
-        print(cmd)
-        p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate()
-
-        # if running in production mode, trjconv to create a dry XTC
-        if params.md_step == 'Production':
-            assert self.dry_xtc_file is not None and self.last_wet_snapshot is not None
-            cmd = 'echo 0 | gmx trjconv -f end.gro -s topol.tpr -o %s -pbc whole' % self.last_wet_snapshot
-            print(cmd)
-            p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            output, error = p.communicate()
-            #print(output, error)
-            cmd = 'echo PROTEIN | gmx trjconv -f %s -s topol.tpr -o %s -pbc whole' % (self.wet_xtc_file, self.dry_xtc_file)
-            print(cmd)
-            p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            output, error = p.communicate()
-            #print(output, error)
-
         return (out, err)
