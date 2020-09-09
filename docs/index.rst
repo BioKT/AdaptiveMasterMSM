@@ -2,7 +2,7 @@
 AdaptiveMasterMSM
 ##################
 
-.. image:: Logo_vector.pdf
+.. image:: Logo_Web.pdf
    :width: 400
 
 AdaptiveMasterMSM is an open-source implementation of adaptive sampling algorithms exploiting markov state models based on the rate matrix.
