@@ -2,6 +2,9 @@
 AdaptiveMasterMSM
 ##################
 
+.. image:: Logo_vector.pdf
+   :width: 400
+
 AdaptiveMasterMSM is an open-source implementation of adaptive sampling algorithms exploiting markov state models based on the rate matrix.
 
 The AdaptiveMasterMSM python package is designed to carry out adaptive sampling
