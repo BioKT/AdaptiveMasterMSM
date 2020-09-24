@@ -7,7 +7,6 @@ import h5py
 import os, sys
 from os import path
 import itertools
-import random
 # Maths
 import numpy as np
 # Plotting
@@ -327,7 +326,7 @@ class Analyzer(object):
             Number of runs for each macrostate
 
         """
-
+        # Determine distribution of new runs according to 'states'
         n_runs = self.n_runs
         n_msm_runs = []
         for x_i in states:
@@ -338,47 +337,14 @@ class Analyzer(object):
         fac = n_runs / np.sum(n_msm_runs)
         n_msm_runs = [fac*x_i for x_i in n_msm_runs]
         n_msm_runs = [round(x_i) for x_i in n_msm_runs]
+        
         print(len(n_msm_runs), np.sum(n_msm_runs))
         print(n_msm_runs, n_runs)
-
-        # generar inputs
-        counter = np.zeros(len(n_msm_runs))
-        # generar weights
-        w = np.zeros((len(self.labels_all), len(n_msm_runs)))
-        for j, x_j in enumerate(self.labels_all):
-            for i in range(len(n_msm_runs)):
-                # row: which traj, column: which label
-                index = analyzer_lib.list_duplicates_of(list(x_j), i)
-                w[j][i] = len(index)
-            if np.sum(w[j]) > 0.0: w[j] /= np.sum(w[j])
-
-        for val in range(len(n_msm_runs)):
-            while True:
-                which_tr_index = random.choices(range(len(self.labels_all)), weights=w[:,val])
-                which_tr = self.labels_all[which_tr_index[0]]
-                # obtain positions in traj where label 'val' is found
-                index = analyzer_lib.list_duplicates_of(list(which_tr), val)
-                if len(index) is 0: continue # esto es redundante si weights funciona
-                val2 = random.choice(index)
-                self.inputs(which_tr_index[0], val2)
-                counter[which_tr[val2]] += 1
-                if n_msm_runs[val] <= counter[which_tr[val2]]: break
         
-        print(np.sum(counter), counter)
+        # Use weights to randomly choose a frame and create a corresponding .gro file
+        analyzer_lib.gen_input_weights(n_msm_runs, self.labels_all, self.trajs)
 
-    def inputs(self, which_tr_index, val2):
-        """
-        
-        Parameters
-        ----------
-        which_tr_index : int
-            Which trajectory identified by index
-        val2 : int
-            Index corresponding to the initial state for the new input
+        # Use a dict containing all trajs, labels and frames to pick randomly a frame
+        # to do ...
 
-        """
 
-        #print(type(self.trajs[which_tr_index].mdt), type(self.trajs[which_tr_index].mdt[val2]))
-        frame = self.trajs[which_tr_index].mdt
-        fn = '%s_%s.gro'%(which_tr_index,val2)
-        frame[val2].save_gro(fn)
