@@ -40,12 +40,12 @@ class Analyzer(object):
             Path to trajectory files separated by spaces only
 
         """
-
         # Read parallel trajectories
         self.data = []
         print(trajfiles.split())
         for f in trajfiles.split():
-            if not path.isfile(f): raise ValueError("Trajectory file(s) not valid")
+            if not path.isfile(f):
+                raise ValueError("Trajectory file(s) not valid")
             if '.xtc' in f:
                 self.data.append(f)
             elif '.h5' in f:
@@ -112,7 +112,7 @@ class Analyzer(object):
             self.gen_mmsm()
         else:
             self.mMSM = self.MSM
-            self.n_clusters = len(self.mMSM.peqK) if self.rate else len(self.mMSM.peqT)
+            self.n_clusters = len(self.mMSM.keep_states)
 
         #3- Wrap up
         print("MSM done")
