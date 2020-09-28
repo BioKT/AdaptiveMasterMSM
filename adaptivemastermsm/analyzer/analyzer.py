@@ -11,6 +11,7 @@ import itertools
 import numpy as np
 # Plotting
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import seaborn as sns
 sns.set(style="ticks", color_codes=True, font_scale=1.5)
 sns.set_style({"xtick.direction": "in", "ytick.direction": "in"})
@@ -59,7 +60,7 @@ class Analyzer(object):
 
         # Note: gen_input is only called from outside (controller)
 
-    def build_msm(self, n_runs, lagt, dt=1, mcs=185, ms=145, sym=True,\
+    def build_msm(self, n_runs, lagt, mcs=185, ms=145, dt=1, sym=True,\
                     n_clusters=0, rate_mat=True, gro=None):
         """
         Build the MSM for the next round.
@@ -87,10 +88,6 @@ class Analyzer(object):
             Path to .gro or .pdb file
 
         """
-        self.n_runs, self.n_clusters = n_runs, n_clusters
-        self.lt, self.dt, self.sym, self.rate = lagt, dt, sym, rate_mat
-        self.min_cluster_size, self.min_samples = mcs, ms
-
         #1- Clustering:
         # one 'labels' per parallel run, TimeSeries will merge all together
         self.labels_all = []
@@ -98,21 +95,20 @@ class Analyzer(object):
         for i in range(len(self.data)):
             #labels = self.gen_clusters_mueller(i)
             labels, tr = self.gen_clusters_ramachandran(i, gro, method='hdbscan',\
-                            mcs=self.min_cluster_size, ms=self.min_samples)
+                            mcs=mcs, ms=ms)
             trs.append(tr)
             self.labels_all.append(labels)
-        
         self.trajs = trs
 
         #2- do MSM:
         #self.gen_msm(tr_instance=False)
-        self.gen_msm(tr_instance=True)
-
-        if self.n_clusters > 0:
-            self.gen_mmsm()
-        else:
-            self.mMSM = self.MSM
-            self.n_clusters = len(self.mMSM.keep_states)
+        self.gen_msm(tr_instance=True, dt=dt, \
+                lagt=lagt, sym=sym)
+#        if self.n_clusters > 0:
+#            self.gen_mmsm()
+#        else:
+#            self.mMSM = self.MSM
+#            self.n_clusters = len(self.mMSM.keep_states)
 
         #3- Wrap up
         print("MSM done")
@@ -131,22 +127,21 @@ class Analyzer(object):
         if method == 'ramagrid':
             tr.discretize(method='ramagrid', nbins=5)
         elif method == 'hdbscan':
-            mcs, ms = self.min_cluster_size, self.min_samples
             tr.discretize(method='hdbscan', mcs=mcs, ms=ms)
         else:
             tr.discretize(states=['A', 'E'])
         
         tr.find_keys()
         tr.keys.sort()
-        """
-        fig, ax = plt.subplots(figsize=(10,3))
-        ax.plot(tr.mdt.time, [x for x in tr.distraj], lw=2)
-        ax.set_xlim(0,5000)
-        ax.set_ylim(0.8,2.2)
-        ax.set_xlabel('Time (ps)', fontsize=20)
-        ax.set_ylabel('state', fontsize=20)
-        plt.savefig('traj.png')
-        """
+#        """
+#        fig, ax = plt.subplots(figsize=(10,3))
+#        ax.plot(tr.mdt.time, [x for x in tr.distraj], lw=2)
+#        ax.set_xlim(0,5000)
+#        ax.set_ylim(0.8,2.2)
+#        ax.set_xlabel('Time (ps)', fontsize=20)
+#        ax.set_ylabel('state', fontsize=20)
+#        plt.savefig('traj.png')
+#        """
         return tr.distraj, tr
 
     def gen_clusters_mueller(self, i):
@@ -190,7 +185,7 @@ class Analyzer(object):
 
         return labels
 
-    def gen_msm(self, tr_instance=False):
+    def gen_msm(self, tr_instance=False, dt=None, lagt=None, sym=False, rate=False):
         """
         Do MSM and build macrostates
 
@@ -200,72 +195,62 @@ class Analyzer(object):
             True if an instance of trajectory exists
 
         """
-
         # Create an instance of traj for each trajectory and merge in a single list
         if tr_instance:
             distrajs = self.trajs
         else:
             labels = self.labels_all
-            dt = self.dt
             distrajs = []
             for label in labels:
                 distraj = traj.TimeSeries(distraj=list(label), dt=dt)
                 distraj.find_keys()
                 distraj.keys.sort()
                 distrajs.append(distraj)
-
-        lagt = self.lt
-        sym = self.sym
         # Invoke SuperMSM to collect keys from all trajectories
         smsm = msm.SuperMSM(distrajs, sym=sym)
         micro_msm = msm.MSM(data=distrajs, keys=smsm.keys, lagt=lagt, sym=sym)
         micro_msm.do_count()
-        if self.rate:
+        if rate:
             #smsm = msm.SuperMSM(distrajs, sym=True) #keys=distraj.keys
             smsm.do_lbrate()
             micro_msm.do_rate(method='MLPB', evecs=False, init=smsm.lbrate)
         else:
             micro_msm.do_trans(evecs=False)
-        
-        fig, ax = plt.subplots()
-        #ax.errorbar(range(1,2),np.log(micro_msm.tauK[0:2]), fmt='o-')
-        ax.errorbar(range(1,2),micro_msm.tauT[0:10], fmt='o-')
-        ax.set_xlabel('Eigenvalue index')
-        ax.set_ylabel(r'$\tau_i$ (ns)')
-        plt.savefig('eigs_T.png')
-        
+#        fig, ax = plt.subplots()
+#        #ax.errorbar(range(1,2),np.log(micro_msm.tauK[0:2]), fmt='o-')
+#        ax.errorbar(range(1,2),micro_msm.tauT[0:10], fmt='o-')
+#        ax.set_xlabel('Eigenvalue index')
+#        ax.set_ylabel(r'$\tau_i$ (ns)')
+#        plt.savefig('eigs_T.png')       
         self.MSM = micro_msm
 
-    def gen_mmsm(self):
-        """
-        Build macrostates
-
-        """
-
-        n_clusters = self.n_clusters
-        MSM = self.MSM
-        mmsm = fewsm.FEWSM(MSM, N=n_clusters)
-        self.mMSM = mmsm
-
-        import matplotlib.cm as cm
-        fig, ax = plt.subplots(figsize=(5,5))
-        mat = np.zeros((20,20), float)
-        for i in MSM.keep_keys:
-            j = MSM.keep_keys.index(i)
-            if j in mmsm.macros[0]:
-                mat[i%20, int(i/20)] = 1
-            elif j in mmsm.macros[1]:
-                mat[i%20, int(i/20)] = 2
-            else:
-                mat[i%20, int(i/20)] = 3
-            mat#print i, i[0]%20, int(i[0]/20), -i[1]
-        my_cmap = cm.get_cmap('viridis')
-        my_cmap.set_under('w')
-        ax.imshow(mat.transpose(), interpolation="none", origin='lower', \
-             cmap=my_cmap, vmin = 0.5)
-        plt.savefig('fewms.png')
+#    def gen_macro_msm(self, n_clusters=1):
+#        """
+#        Build macrostates
+#
+#        """
+#        MSM = self.MSM
+#        macro_msm = fewsm.FEWSM(MSM, N=n_clusters)
+#        self.mMSM = macro_msm
+#
+#        fig, ax = plt.subplots(figsize=(5,5))
+#        mat = np.zeros((20,20), float)
+#        for i in MSM.keep_keys:
+#            j = MSM.keep_keys.index(i)
+#            if j in mmsm.macros[0]:
+#                mat[i%20, int(i/20)] = 1
+#            elif j in mmsm.macros[1]:
+#                mat[i%20, int(i/20)] = 2
+#            else:
+#                mat[i%20, int(i/20)] = 3
+#            mat#print i, i[0]%20, int(i[0]/20), -i[1]
+#        my_cmap = cm.get_cmap('viridis')
+#        my_cmap.set_under('w')
+#        ax.imshow(mat.transpose(), interpolation="none", origin='lower', \
+#             cmap=my_cmap, vmin = 0.5)
+#        plt.savefig('fewms.png')
         
-    def resampler(self, scoring='populations'):
+    def resampler(self, scoring='populations', sym=False):
         """
         
         Parameters
@@ -280,38 +265,51 @@ class Analyzer(object):
         elif scoring == "populations":
             states = self.populs()
         elif scoring == "non_detailed_balance":
-            if self.sym: raise Exception("Cannot impose symmetry with chosen scoring criteria.")
+            if sym: 
+                raise Exception("Cannot impose symmetry with chosen scoring criteria.")
             states = self.non_detbal()
 
         self.gen_input(states)
 
-    def non_detbal(self):
-        """
-        Resampling criteria proportional to lack of detailed
-        balance of each MSM state
-
-        """
-
-        nondb = abs( self.MSM.count - np.transpose(self.MSM.count) )
-        return np.sum(nondb, axis=1)        
-
     def populs(self):
         """
-        Resampling criteria inversely proportional to
-        MSM's populations
+        Resampling probability inversely proportional to
+        state populations
 
         """
-
-        return 1./self.MSM.peqK if self.rate else 1./self.MSM.peqT
+        p = 1./self.MSM.peqT
+        return p/np.sum(p)
 
     def counts(self):
         """
-        Resampling criteria inversely proportional to
-        how many times those states have been visited
+        Resampling probability inversely proportional to
+        number of visits
 
         """
+        p = 1./np.sum(self.MSM.count, axis=1)
+        return p/np.sum(p)
 
-        return 1./np.sum(self.MSM.count, axis=1)
+    def non_detbal(self):
+        """
+        Resampling probability proportional to lack of detailed
+        balance for each MSM state
+
+        """
+        total = self.MSM.count + np.transpose(self.MSM.count)
+        nondb = abs(self.MSM.count - np.transpose(self.MSM.count))/total
+        nondb = np.sum(np.nan_to_num(nondb, 0), axis=1)
+        return nondb/np.sum(nondb)
+
+    def flux_inbalance(self):
+        """
+        Resampling probality proportional to flux imbalance
+
+        """
+        flux = [(np.sum(self.MSM.count[x, :]) - np.sum(self.MSM.count[:,x]))/\
+                (np.sum(self.MSM.count[:,x]) + np.sum(self.MSM.count[x, :])) \
+                for x in range(len(self.MSM.keep_states))]
+        flux += np.min(flux)
+        return flux/np.sum(flux)
 
     def gen_input(self, states):
         """
@@ -346,5 +344,3 @@ class Analyzer(object):
 
         # Use a dict containing all trajs, labels and frames to pick randomly a frame
         # to do ...
-
-
