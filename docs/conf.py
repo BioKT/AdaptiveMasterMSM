@@ -77,11 +77,16 @@ pygments_style = None
 #html_theme = 'alabaster'
 html_theme = 'default'
 
+html_logo = 'Logo_Web.png'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
 # html_theme_options = {}
+html_theme_options = {
+    'logo_only': True,
+    'display_version': False,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
