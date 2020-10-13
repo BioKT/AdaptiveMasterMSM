@@ -36,15 +36,16 @@ class Analyzer(object):
 
         Parameters
         ----------
-        trajfiles : str
-            Path to trajectory files separated by spaces only
+        trajfiles : list
+            Path(s) to trajectory file(s)
 
         """
 
         # Read parallel trajectories
         self.data = []
-        print(trajfiles.split())
-        for f in trajfiles.split():
+        print(trajfiles)
+        for f in trajfiles:
+            print(f, type(f))
             if not path.isfile(f):
                 raise ValueError("Trajectory file(s) not valid")
             if '.xtc' in f:
@@ -58,10 +59,8 @@ class Analyzer(object):
         # Do MSM and get macrostates build_msm(mcs, ms, lagt, rate_mat=True)
         # Call resampler(macmsm) and gen_input
 
-        # Note: gen_input is only called from outside (controller)
-
     def build_msm(self, n_runs, lagt, mcs=185, ms=145, dt=1, sym=True,\
-                    n_clusters=0, rate_mat=True, gro=None):
+                    n_clusters=0, rate_mat=True, gro=None, method='hdbscan'):
         """
         Build the MSM for the next round.
         Return macrostates obtained from the MSM.
@@ -86,6 +85,8 @@ class Analyzer(object):
             Build the MSM from K matrix, otherwise T is used
         gro : str
             Path to .gro or .pdb file
+        method : str
+            Discretization method (hdbscan, rama, ramagrid)
 
         """
         self.n_runs, self.n_clusters = n_runs, n_clusters
@@ -98,7 +99,7 @@ class Analyzer(object):
         trs = []
         for i in range(len(self.data)):
             #labels = self.gen_clusters_mueller(i)
-            labels, tr = self.gen_clusters_ramachandran(i, gro, method='hdbscan',\
+            labels, tr = self.gen_clusters_ramachandran(i, gro, method=method,\
                             mcs=self.min_cluster_size, ms=self.min_samples)
             trs.append(tr)
             self.labels_all.append(labels)
@@ -109,7 +110,7 @@ class Analyzer(object):
         self.gen_msm(tr_instance=True)
 
         if self.n_clusters > 0:
-            self.gen_mmsm()
+            self.gen_macro_msm()
         else:
             self.mMSM = self.MSM
             self.n_clusters = len(self.mMSM.peqK) if self.rate else len(self.mMSM.peqT)
@@ -126,8 +127,7 @@ class Analyzer(object):
         """
         #phi = md.compute_phi(tr.mdt)
         #psi = md.compute_psi(tr.mdt)
-        #tr = traj.TimeSeries(top=gro, traj=[self.data[i]])
-        tr = traj.TimeSeries(top=gro, traj=self.data[i])
+        tr = traj.TimeSeries(top=gro, traj=self.data[i])#traj=[self.data[i]]
         if method == 'ramagrid':
             tr.discretize(method='ramagrid', nbins=5)
         elif method == 'hdbscan':
@@ -256,11 +256,13 @@ class Analyzer(object):
 #             cmap=my_cmap, vmin = 0.5)
 #        plt.savefig('fewms.png')
         
-    def resampler(self, scoring='populations', sym=False):
+    def resampler(self, tprs, scoring='populations', sym=False):
         """
         
         Parameters
         ----------
+        tprs : list
+            tpr files from Launcher to generate new gro files
         scoring : str
             Scoring function to determine how to resample
 
@@ -275,7 +277,7 @@ class Analyzer(object):
                 raise Exception("Cannot impose symmetry with chosen scoring criteria.")
             states = self.non_detbal()
 
-        inputs = self.gen_input(states)
+        inputs = self.gen_input(states, tprs)
 
         return inputs
 
@@ -319,7 +321,7 @@ class Analyzer(object):
         flux += np.min(flux)
         return flux/np.sum(flux)
 
-    def gen_input(self, states):
+    def gen_input(self, states, tprs):
         """
         
         Parameters
@@ -337,7 +339,7 @@ class Analyzer(object):
         # Determine distribution of new runs according to 'states'
         n_runs = self.n_runs #n_runs = 10
         n_msm_runs = np.random.choice(range(len(self.MSM.keep_states)), n_runs, p=states)
-        print (n_msm_runs)
+        print ('Runs for new epoch:', n_msm_runs)
         
 #        # OPTION 1: Use weights to randomly choose a frame and create a corresponding .gro file
 #        n_msm_runs_aux = []
@@ -352,9 +354,10 @@ class Analyzer(object):
             if n not in state_kv.keys():
                 print ("Building entry for microstate %g"%n)
                 analyzer_lib.gen_dict_state(n, self.trajs, state_kv)
-            traj, frame = random.choice(state_kv[n])
-            analyzer_lib.map_inputs(traj, n, frame, inputs)
-            #print (n, traj, frame)
+            traj, frame, which_tr = random.choice(state_kv[n])
+            tpr = tprs[which_tr]
+            analyzer_lib.map_inputs(traj, n, frame, inputs, tpr)
+            print (n, traj, frame, which_tr)
 
         return inputs
 

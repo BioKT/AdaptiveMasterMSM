@@ -50,11 +50,13 @@ def gen_input_weights(n_msm_runs, labels_all, trajs):
     print(inputs)
     return inputs
 
-def map_inputs(traj, label, frame, inputs):
+def map_inputs(traj, label, frame, inputs, tpr):
     """
         
     Parameters
     ----------
+    traj : object
+        mdtraj Trajectory object (see in TimeSeries of MasterMSM/traj.py)
     label : int
         Label identifying the initial state of the new input
     frame : int
@@ -65,30 +67,12 @@ def map_inputs(traj, label, frame, inputs):
     fn = '%s_%s.gro'%(label,frame)
     inputs.append(fn)
     #traj[frame].save_gro(fn) #traj[frame].center_coordinates()
-    tr = 'data/tr_%s.xtc'%(frame)
-    traj[frame].save_xtc(tr)
-    tpr = 'data/alaTB.tpr'
-    print('ionix',traj[frame].time,traj.time[frame])
-    cmd = "gmx trjconv -s %s -f %s -dump %s"%(tpr, tr, traj.time[frame])
-    #cmd = "gmx trjconv -f %s -dump %f"%(tr, traj[frame].time)
+    ###tr = 'data/tr_%s.h5'%(frame)
+    ###traj.save_hdf5(tr)
+    tr = 'data/%s_%s.xtc'%(label,frame)
+    traj.save_xtc(tr)
+    cmd = "gmx trjconv -s %s -f %s -o %s -dump %s <<EOF\n1\nEOF"%(tpr, tr, fn, traj.time[frame])
     os.system(cmd)
-
-    """# frame file
-    frame = 'data/frame_%s_%s.ndx'%(label,frame)
-    launcher_lib.checkfile(frame)
-    inp = open(frame, "w")
-    txt = """
-    #`[frames]
-    #%d
-    """ % (frame)
-    inp.write(txt)
-    inp.close()
-    # trajectory file
-    tr = 'data/tr_%s.xtc'%(frame)
-    traj[frame].save_xtc(tr)
-    # create gro file corresponding to snapshot frame from tr trajectory
-    cmd = "gmx trjconv -f %s -o %s -fr %s"%(tr, fn, frame)
-    os.system(cmd)"""
 
 
 def list_duplicates_of(seq,item):
@@ -124,14 +108,18 @@ def gen_dict_state(s, trajs, state_kv):
         The key for the state
     trajs : instance
         Instance of TimeSeries containing all trajectories
+    state_kv : dict
+        Dictionary containing all trajectories and corresponding frames
 
     """
     #global state_kv
     state_kv[s] = []
+    n = 0
     for t in trajs:
+        n +=1
         try:
             ivals = np.where(t.distraj == s)[0]
             for i in ivals:
-                state_kv[s].append([t.mdt, i])
+                state_kv[s].append([t.mdt, i, n-1])
         except KeyError:
             pass

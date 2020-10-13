@@ -29,7 +29,7 @@ class Launcher(object):
         """
         Launcher.system = simsys
 
-    def gen_tpr(self, mdp=None, tpr='out.tpr'): #, i, chk=None):
+    def gen_tpr(self, mdp=None, tpr='data/out.tpr'): #, i, chk=None):
         """
         Function for generating tpr files
 
@@ -47,10 +47,11 @@ class Launcher(object):
         #        %(gro, top, mdp, chk, tpr)
         #else:
         filemdp = mdp
-        if mdp in ["min","nvt","npt"]:
+        if mdp in ["min","nvt","npt","prod"]:
             if mdp is "min": txt = launcher_lib.write_mdp_min()
             if mdp is "nvt": txt = launcher_lib.write_mdp_nvt()
             if mdp is "npt": txt = launcher_lib.write_mdp_npt()
+            if mdp is "prod": txt = launcher_lib.write_mdp_prod()
             filemdp = "data/mdp/%s.mdp" % mdp
             launcher_lib.checkfile(filemdp)
             inp = open(filemdp, "w")
@@ -62,7 +63,7 @@ class Launcher(object):
         os.system(cmd)
         self.tpr = tpr
 
-    def gmx_run(self, out='out'):
+    def gmx_run(self, out='data/out'):
         """
         Runs MD simulations using gmx mdrun
 
@@ -86,27 +87,6 @@ class Launcher(object):
         self.out = out
         # after the run we replace the gro in the system for the output gro file
         self.system.gro =  "%s.gro"%out
-
-#    def runner(self, tpr, out):
-#        """
-#        Call MDRUN via multiprocessing
-#
-#        """
-#        # set multiprocessing options
-#        n_threads = mp.cpu_count()
-#        pool = mp.Pool(processes=n_threads)
-#        # run simulations
-#        results = []
-#        for x in gmxinput:
-#            results.append(pool.apply_async(self.gromacs_worker, [x]))
-#        # close the pool and wait for each running task to complete
-#        pool.close()
-#        pool.join()
-#        for result in results:
-#            out, err = result.get()
-#            print("out: {} err: {}".format(out, err))
-#
-#        launcher_lib.clean_working_directory()
 
     def inputs(self, gro_all, top_all=None, chk=None, mdp_params=None, mdp=None):
         """
@@ -196,12 +176,32 @@ class Launcher(object):
             out.write("%s"%i)
         """
         return filemdpout
-    
-    def gromacs_worker(self, x):
+
+    def mp_run(self, tprs, outs):
+        """ Driver for gmx_worker
+
         """
-        Worker function for running Gromacs jobs
+        # define multiprocessing options
+        nproc = mp.cpu_count()
+        pool = mp.Pool(processes=nproc)
+        # generate multiprocessing input
+        mpinput = [[tpr, out] for tpr in tprs for out in outs]
+        # run counting using multiprocessing
+        pool.map(self.gmx_worker, mpinput)
+        pool.close()
+        pool.join()
+
+    def gmx_worker(self, x):
+        """ mp worker for running Gromacs jobs
 
         -->Shall we use 'multi' flag from Gromacs?
+
+        Parameters
+        ----------
+        x : list
+            List containing input for each mp worker. Includes:
+            path to tpr file
+            path to inp/out file
 
         """
         #print(x)
@@ -213,4 +213,4 @@ class Launcher(object):
         print(cmd)
         p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
-        return (out, err)
+        #return (out, err)

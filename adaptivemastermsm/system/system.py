@@ -73,6 +73,7 @@ class System(object):
             Distance between solute and box sides        
         
         """
+        if self.gro is None: self.gro = 'conf.gro'
         gro = self.gro
         cmd = 'gmx editconf -f %s -o %s -c -d %f -bt cubic' %(gro, out, d)
         print (cmd)

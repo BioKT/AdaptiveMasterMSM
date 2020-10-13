@@ -11,6 +11,15 @@ def checkfile(inp):
     if not os.path.exists(inp[:inp.rfind("/")]):
         os.makedirs(inp[:inp.rfind("/")])
 
+#def clean_working_directory():
+#
+#    print ("Cleaning up...")
+#    os.system('rm \#*')
+#    os.system('mkdir logs')
+#    os.system('mv *.log logs')
+#    os.system('rm *.trr *.top *.itp *.edr *.cpt *.tpr out.gro conf.gro')
+#    os.system('mv equilibration.xtc *.mdp *.gro logs')
+
 def write_mdp_min(emstep=0.001, nsteps=50000, constraints="none"):
 
     txt = """
@@ -116,6 +125,77 @@ def write_mdp_npt(dt=0.002, nsteps=50000, constraints="h-bonds",\
     """ % (dt, nsteps, constraints, ref_t, ref_t, ref_p)
     return txt
 
+def write_mdp_prod(emstep=0.002, nsteps=50000, constraints="h-bonds"):
+
+    txt = """
+    ; GROMACS mdp production options
+    integrator   		    = sd
+    dt                      = %f ; in ps
+    nsteps  			    = %d
+    nstlog			        = 10000
+    nstenergy       		= 1000
+    nstxout-compressed	    = 1000
+    compressed-x-grps	    = non-Water
+    continuation		    = yes
+    constraint_algorithm    = lincs  
+    constraints             = %s
+    lincs_iter              = 1      
+    lincs_order             = 4      
+    nstlist			        = 10
+    ns_type			        = grid
+    cutoff-scheme		    = verlet 
+    coulombtype 		    = pme
+    rvdw                    = 1.
+    rcoulomb               	= 1.
+    tc_grps                 = protein non-protein 
+    tau_t                   = 1	1
+    ref_t                   = 300.0 300.0
+    Pcoupl                  = no
+    gen_vel                 = no
+    """ % (emstep, nsteps, constraints)
+    return txt
+
+#integrator              = md
+#dt                      = 0.004
+#nsteps                  = 150000000 ; 600ns
+#nstlog                  = 2500
+#nstxout                 = 2500
+#nstvout                 = 2500
+#nstfout                 = 2500
+#nstcalcenergy           = 2500
+#nstenergy               = 2500
+#;energygrps              = Protein Non-Protein ; Not available for GPU-based runs
+#;
+#cutoff-scheme           = Verlet
+#nstlist                 = 20
+#coulombtype             = pme
+#rcoulomb                = 1.2
+#vdwtype                 = Cut-off
+#vdw-modifier            = Force-switch
+#rvdw_switch             = 1.0
+#rvdw                    = 1.2
+#;
+#tcoupl                  = V-rescale
+#tc_grps                 = Protein Non-Protein
+#tau_t                   = 0.1  0.1
+#ref_t                   = 310   310
+#nsttcouple              = 10
+#;
+#pcoupl                  = Parrinello-Rahman
+#pcoupltype              = isotropic
+#tau_p                   = 2.0
+#compressibility         = 4.5e-5
+#ref_p                   = 1.0
+#;
+#constraints             = all-bonds
+#constraint_algorithm    = LINCS
+#continuation            = yes
+#;
+#refcoord_scaling        = com
+#DispCorr                = EnerPres
+#gen-vel                 = no     ; Assign velocities to particles by taking them randomly from a Maxwell distributioni
+#gen-temp                = 310
+
 #def write_mdp_user(params):
 #
 #    txt = """; GROMACS mdp options
@@ -181,11 +261,4 @@ def write_mdp_npt(dt=0.002, nsteps=50000, constraints="h-bonds",\
 #
 #    return txt
 #
-#def clean_working_directory():
-#
-#    print ("Cleaning up...")
-#    os.system('rm \#*')
-#    os.system('mkdir logs')
-#    os.system('mv *.log logs')
-#    os.system('rm *.trr *.top *.itp *.edr *.cpt *.tpr out.gro conf.gro')
-#    os.system('mv equilibration.xtc *.mdp *.gro logs')
+

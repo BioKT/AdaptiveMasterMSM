@@ -60,4 +60,16 @@ This file is part of the AdaptiveMasterMSM package.
 #        'Na'             : 0              # number Na's
 #    }
 #    return equilibration
-
+#
+#    def run_parameters(self, md_step):
+#
+#        self.md_step = md_step
+#        self.run = {}
+#        # Take production or equilibration paths
+#        if self.md_step == 'Equilibration':
+#            controller_lib.driver_equilibration(self.run)
+#        elif self.md_step == 'Production':
+#            controller_lib.driver_production(self.run)
+#        else:
+#            print ("md_step %s not valid" % self.md_step)
+#            raise Exception("It must be 'Production' or 'Equilibration'")
