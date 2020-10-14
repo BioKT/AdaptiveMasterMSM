@@ -9,7 +9,7 @@ import random
 from adaptivemastermsm.launcher import launcher_lib
 #import mdtraj as md
 
-def gen_input_weights(n_msm_runs, labels_all, trajs):
+def gen_input_weights(n_msm_runs, labels_all, trajs, tprs):
     """
         
     Parameters
@@ -20,6 +20,8 @@ def gen_input_weights(n_msm_runs, labels_all, trajs):
         List of all discretized trajectories
     trajs : List
         List of instances of TimeSeries for all input trajectories
+    tprs : List
+        tpr files corresponding to 'trajs' trajectories
 
     """
 
@@ -40,14 +42,15 @@ def gen_input_weights(n_msm_runs, labels_all, trajs):
             which_tr = labels_all[which_tr_index[0]]
             # obtain positions in traj where label 'i' is found
             index = list_duplicates_of(list(which_tr), i)
-            if len(index) is 0: continue # esto es redundante si weights funciona
+            if len(index) is 0: continue # redundant if 'weigths' works
             j = random.choice(index)
-            map_inputs(trajs[which_tr_index[0]].mdt, i, j, inputs)
+            map_inputs(trajs[which_tr_index[0]].mdt, i, j, inputs, tprs[which_tr_index[0]])
             counter[which_tr[j]] += 1
             if n_msm_runs[i] <= counter[which_tr[j]]: break
         
-    print(np.sum(counter), counter)
-    print(inputs)
+    #print(np.sum(counter), counter)
+    #print(inputs)
+
     return inputs
 
 def map_inputs(traj, label, frame, inputs, tpr):
@@ -74,7 +77,6 @@ def map_inputs(traj, label, frame, inputs, tpr):
     cmd = "gmx trjconv -s %s -f %s -o %s -dump %s <<EOF\n1\nEOF"%(tpr, tr, fn, traj.time[frame])
     os.system(cmd)
 
-
 def list_duplicates_of(seq,item):
     start_at = -1
     locs = []
@@ -87,16 +89,6 @@ def list_duplicates_of(seq,item):
             locs.append(loc)
             start_at = loc
     return locs
-
-#def gen_input_dict(n_msm_runs, self.labels_all, self.trajs):
-#    state_kv = {}
-#    for n in n_msm_runs:
-#        if n not in state_kv.keys():
-#            print ("Building entry for microstate %g"%n)
-#            gen_dict_state(n, an)
-#        traj, frame = random.choice(state_kv[n])
-#        #print (n, traj, frame)
-#    return state_kv
 
 def gen_dict_state(s, trajs, state_kv):
     """

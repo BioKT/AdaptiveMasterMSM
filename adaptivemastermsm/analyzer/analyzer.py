@@ -43,9 +43,7 @@ class Analyzer(object):
 
         # Read parallel trajectories
         self.data = []
-        print(trajfiles)
         for f in trajfiles:
-            print(f, type(f))
             if not path.isfile(f):
                 raise ValueError("Trajectory file(s) not valid")
             if '.xtc' in f:
@@ -99,7 +97,7 @@ class Analyzer(object):
         trs = []
         for i in range(len(self.data)):
             #labels = self.gen_clusters_mueller(i)
-            labels, tr = self.gen_clusters_ramachandran(i, gro, method=method,\
+            labels, tr = self.gen_clusters_ramachandran(i, gro, method,\
                             mcs=self.min_cluster_size, ms=self.min_samples)
             trs.append(tr)
             self.labels_all.append(labels)
@@ -119,14 +117,12 @@ class Analyzer(object):
         print("MSM done")
         sys.stdout.flush()
 
-    def gen_clusters_ramachandran(self, i, gro, method='ramagrid', mcs=185, ms=185):
+    def gen_clusters_ramachandran(self, i, gro, method, mcs=185, ms=185):
         """
         Cluster trajectories into microstates by using Ramachandran angle regions
         Return labels (int array) containing trajectory by microstates
 
         """
-        #phi = md.compute_phi(tr.mdt)
-        #psi = md.compute_psi(tr.mdt)
         tr = traj.TimeSeries(top=gro, traj=self.data[i])#traj=[self.data[i]]
         if method == 'ramagrid':
             tr.discretize(method='ramagrid', nbins=5)
@@ -138,15 +134,15 @@ class Analyzer(object):
         
         tr.find_keys()
         tr.keys.sort()
-#        """
-#        fig, ax = plt.subplots(figsize=(10,3))
-#        ax.plot(tr.mdt.time, [x for x in tr.distraj], lw=2)
-#        ax.set_xlim(0,5000)
-#        ax.set_ylim(0.8,2.2)
-#        ax.set_xlabel('Time (ps)', fontsize=20)
-#        ax.set_ylabel('state', fontsize=20)
-#        plt.savefig('traj.png')
-#        """
+
+        fig, ax = plt.subplots(figsize=(10,3))
+        ax.plot(tr.mdt.time, [x for x in tr.distraj], lw=2)
+        ax.set_xlim(0,100)
+        ax.set_ylim(0.8,2.2)
+        ax.set_xlabel('Time (ps)', fontsize=20)
+        ax.set_ylabel('state', fontsize=20)
+        plt.savefig('traj.png')
+
         return tr.distraj, tr
 
     def gen_clusters_mueller(self, i):
@@ -222,12 +218,14 @@ class Analyzer(object):
             micro_msm.do_rate(method='MLPB', evecs=False, init=smsm.lbrate)
         else:
             micro_msm.do_trans(evecs=False)
-#        fig, ax = plt.subplots()
-#        #ax.errorbar(range(1,2),np.log(micro_msm.tauK[0:2]), fmt='o-')
-#        ax.errorbar(range(1,2),micro_msm.tauT[0:10], fmt='o-')
-#        ax.set_xlabel('Eigenvalue index')
-#        ax.set_ylabel(r'$\tau_i$ (ns)')
-#        plt.savefig('eigs_T.png')       
+
+        fig, ax = plt.subplots()
+        #ax.errorbar(range(1,2),np.log(micro_msm.tauK[0:2]), fmt='o-')
+        ax.errorbar(range(1,2),micro_msm.tauT[0:2], fmt='o-')
+        ax.set_xlabel('Eigenvalue index')
+        ax.set_ylabel(r'$\tau_i$ (ns)')
+        plt.savefig('eigs_T.png')
+
         self.MSM = micro_msm
 
 #    def gen_macro_msm(self, n_clusters=1):
@@ -256,7 +254,7 @@ class Analyzer(object):
 #             cmap=my_cmap, vmin = 0.5)
 #        plt.savefig('fewms.png')
         
-    def resampler(self, tprs, scoring='populations', sym=False):
+    def resampler(self, tprs, scoring='populations'):
         """
         
         Parameters
@@ -273,9 +271,11 @@ class Analyzer(object):
         elif scoring == "populations":
             states = self.populs()
         elif scoring == "non_detailed_balance":
-            if sym: 
+            if self.sym: 
                 raise Exception("Cannot impose symmetry with chosen scoring criteria.")
             states = self.non_detbal()
+        elif scoring == "flux":
+            states = self.flux_inbalance()
 
         inputs = self.gen_input(states, tprs)
 
@@ -338,14 +338,16 @@ class Analyzer(object):
         """
         # Determine distribution of new runs according to 'states'
         n_runs = self.n_runs #n_runs = 10
+        print(states)
+        print(self.MSM.keep_states)
         n_msm_runs = np.random.choice(range(len(self.MSM.keep_states)), n_runs, p=states)
         print ('Runs for new epoch:', n_msm_runs)
         
-#        # OPTION 1: Use weights to randomly choose a frame and create a corresponding .gro file
-#        n_msm_runs_aux = []
-#        for i in self.MSM.keep_states:
-#            n_msm_runs_aux.append(n_msm_runs.count(i))
-#        inputs = analyzer_lib.gen_input_weights(n_msm_runs_aux, self.labels_all, self.trajs)
+        ## OPTION 1: Use weights to randomly choose a frame and create a corresponding .gro file
+        #n_msm_runs_aux = []
+        #for i in self.MSM.keep_states:
+        #    n_msm_runs_aux.append(len(n_msm_runs[ n_msm_runs == i ]))#.count(i)
+        #inputs = analyzer_lib.gen_input_weights(n_msm_runs_aux, self.labels_all, self.trajs, tprs)
 
         # OPTION 2: Use a dict containing all trajs, labels and frames to pick randomly a frame
         state_kv = {}
@@ -357,7 +359,7 @@ class Analyzer(object):
             traj, frame, which_tr = random.choice(state_kv[n])
             tpr = tprs[which_tr]
             analyzer_lib.map_inputs(traj, n, frame, inputs, tpr)
-            print (n, traj, frame, which_tr)
+            #print (n, traj, frame, which_tr)
 
         return inputs
 

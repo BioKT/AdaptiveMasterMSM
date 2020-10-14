@@ -185,7 +185,10 @@ class Launcher(object):
         nproc = mp.cpu_count()
         pool = mp.Pool(processes=nproc)
         # generate multiprocessing input
-        mpinput = [[tpr, out] for tpr in tprs for out in outs]
+        mpinput = []
+        for i, tpr in enumerate(tprs):
+            mpinput.append([tpr, outs[i]])
+        #mpinput = [[tpr, out] for tpr in tprs for out in outs]
         # run counting using multiprocessing
         pool.map(self.gmx_worker, mpinput)
         pool.close()
@@ -209,7 +212,7 @@ class Launcher(object):
         out = x[1]
 
         # run simulation
-        cmd = "gmx mdrun -v -s %s -deffnm %s"%(tpr, out)
+        cmd = "gmx mdrun -nt 1 -v -s %s -deffnm %s"%(tpr, out)
         print(cmd)
         p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()

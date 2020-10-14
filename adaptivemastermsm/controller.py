@@ -55,8 +55,8 @@ class Controller(object):
 
         if trajfiles is None:
             self.all_sys_equilibration()
-            self.trajfiles = ['%s.xtc'%Controller.npt.out]
-            self.tprs = [Controller.npt.tpr]
+            self.trajfiles = ['%s.xtc'%self.npt.out]
+            self.tprs = [self.npt.tpr]
         else:
             self.trajfiles = trajfiles
             self.tprs = tprs
@@ -110,7 +110,7 @@ class Controller(object):
         self.sys_equilibrate('npt')
 
     def adaptive_sampling(self, n_runs, lagt, mcs=185, ms=145, sym=False, rate_mat=True,\
-                            scoring='populations', n_epochs=1, max_time=1000):
+                            scoring='populations', n_epochs=2, max_time=1000):
         """
         Implementation of the Adaptive Sampling algorithm
 
@@ -164,14 +164,14 @@ class Controller(object):
                 # here CLEAN not interesting files!
                 # Prepare the simulation box and thermodynamic ensemble
                 self.all_sys_equilibration()
-                tpr, out = 'data/tpr/%s.tpr'%i, 'data/out/%s'%i
+                tpr, out = 'data/tpr/%s_%s.tpr'%(n, i), 'data/out/%s_%s'%(n, i)
                 launcher_lib.checkfile(tpr)
                 launcher_lib.checkfile(out)
                 self.npt.gen_tpr(mdp='prod', tpr=tpr)
                 tprs.append(tpr)
                 outs.append(out)
                 self.trajfiles.append('%s.xtc'%out)
-            print(outs)
+            #print(outs)
 
             # Run parallel short trajectories
             self.npt.mp_run(tprs, outs)
