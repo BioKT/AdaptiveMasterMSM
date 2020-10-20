@@ -20,7 +20,7 @@ def checkfile(inp):
 #    os.system('rm *.trr *.top *.itp *.edr *.cpt *.tpr out.gro conf.gro')
 #    os.system('mv equilibration.xtc *.mdp *.gro logs')
 
-def write_mdp_min(emstep=0.001, nsteps=5000, constraints="none"):
+def write_mdp_min(emstep=0.001, nsteps=50000, constraints="none"):
 
     txt = """
     ; GROMACS mdp minimization options
@@ -30,7 +30,7 @@ def write_mdp_min(emstep=0.001, nsteps=5000, constraints="none"):
     nsteps                   = %d
     nstxout                  = 0
     nstvout                  = 0
-    nstlog                   = 10
+    nstlog                   = 1000
     nstenergy                = 0
     nstxtcout                = 0
     xtc_grps                 = System
@@ -52,7 +52,7 @@ def write_mdp_min(emstep=0.001, nsteps=5000, constraints="none"):
     """ % (emstep, nsteps, constraints)
     return txt
 
-def write_mdp_nvt(dt=0.002, nsteps=5000, constraints="h-bonds", ref_t=300):
+def write_mdp_nvt(dt=0.002, nsteps=50000, constraints="h-bonds", ref_t=300):
 
     txt = """
     define                  = -DPOSRES
@@ -85,7 +85,7 @@ def write_mdp_nvt(dt=0.002, nsteps=5000, constraints="h-bonds", ref_t=300):
     """ % (dt, nsteps, constraints, ref_t, ref_t)
     return txt
 
-def write_mdp_npt(dt=0.002, nsteps=5000, constraints="h-bonds",\
+def write_mdp_npt(dt=0.002, nsteps=50000, constraints="h-bonds",\
                     ref_t=300, ref_p=1.0):
 
     txt = """
@@ -93,9 +93,9 @@ def write_mdp_npt(dt=0.002, nsteps=5000, constraints="h-bonds",\
     integrator              = md
     dt                      = %f
     nsteps                  = %d
-    nstlog                  = 100
-    nstenergy               = 100
-    nstxout-compressed      = 100
+    nstlog                  = 1000
+    nstenergy               = 1000
+    nstxout-compressed      = 1000
     compressed-x-grps       = non-Water
     continuation            = yes
     constraint_algorithm    = lincs
@@ -132,9 +132,11 @@ def write_mdp_prod(emstep=0.002, nsteps=50000, constraints="h-bonds"):
     integrator   		    = sd
     dt                      = %f ; in ps
     nsteps  			    = %d
-    nstlog			        = 1000
+    nstlog			        = 100
     nstenergy       		= 100
     nstxout-compressed	    = 100
+    ; nstxtcout               = 100
+    ; xtc-grps                = protein
     compressed-x-grps	    = non-Water
     continuation		    = yes
     constraint_algorithm    = lincs  

@@ -25,24 +25,26 @@ def gen_input_weights(n_msm_runs, labels_all, trajs, tprs):
 
     """
 
-    counter = np.zeros(len(n_msm_runs))
     # generar weights
     w = np.zeros((len(labels_all), len(n_msm_runs)))
     for j, x_j in enumerate(labels_all):
         for i in range(len(n_msm_runs)):
-            # row: which traj, column: which label
+            # row: which traj (or list of labels), column: which label
             index = list_duplicates_of(list(x_j), i)
             w[j][i] = len(index)
         if np.sum(w[j]) > 0.0: w[j] /= np.sum(w[j])
 
     inputs = []
+    counter = np.zeros(len(n_msm_runs))
     for i in range(len(n_msm_runs)):
         while True:
             which_tr_index = random.choices(range(len(labels_all)), weights=w[:,i])
             which_tr = labels_all[which_tr_index[0]]
             # obtain positions in traj where label 'i' is found
             index = list_duplicates_of(list(which_tr), i)
-            if len(index) is 0: continue # redundant if 'weigths' works
+            print('ionix',i)
+            print(w[:,i])
+            if len(index) is 0: break # redundant if 'weigths' works
             j = random.choice(index)
             map_inputs(trajs[which_tr_index[0]].mdt, i, j, inputs, tprs[which_tr_index[0]])
             counter[which_tr[j]] += 1
@@ -90,28 +92,3 @@ def list_duplicates_of(seq,item):
             start_at = loc
     return locs
 
-def gen_dict_state(s, trajs, state_kv):
-    """
-    Generates dictionary entry for state s
-    
-    Parameters
-    ----------
-    s : str, int
-        The key for the state
-    trajs : instance
-        Instance of TimeSeries containing all trajectories
-    state_kv : dict
-        Dictionary containing all trajectories and corresponding frames
-
-    """
-    #global state_kv
-    state_kv[s] = []
-    n = 0
-    for t in trajs:
-        n +=1
-        try:
-            ivals = np.where(t.distraj == s)[0]
-            for i in ivals:
-                state_kv[s].append([t.mdt, i, n-1])
-        except KeyError:
-            pass

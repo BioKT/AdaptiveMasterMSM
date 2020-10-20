@@ -149,9 +149,9 @@ class Controller(object):
 
             # ANALYZER #
             self.anal = analyzer.Analyzer(self.trajfiles)
-            self.anal.build_msm(n_runs, lagt, mcs=mcs, ms=ms, sym=sym,\
-                                gro=self.gro_initial, rate_mat=rate_mat)
-            inputs = self.anal.resampler(tprs, scoring=scoring, sym=sym)
+            self.anal.build_msm(n, n_runs, lagt, method='ramagrid', \
+                mcs=mcs, ms=ms, sym=sym, gro=self.gro_initial, rate_mat=rate_mat)
+            inputs = self.anal.resampler(tprs, scoring=scoring)
 
             # PRODUCTION #
             tprs, outs, self.trajfiles = [], [], []
