@@ -100,11 +100,10 @@ class Analyzer(object):
             labels, tr = self.gen_clusters_ramachandran(i, gro, method,\
                             mcs=self.min_cluster_size, ms=self.min_samples)
         
-            fig, ax = plt.subplots(figsize=(10,3))
-            ax.plot(tr.mdt.time, [x for x in tr.distraj], lw=2)
-            #ax.set_xlim(0, 1e4)#ax.set_xlim(0,500) #ax.set_ylim(-1, 400)#ax.set_ylim(-0.1,2.1)
-            ax.set_xlabel('Time (ps)', fontsize=20), ax.set_ylabel('state', fontsize=20)
-            plt.savefig('%s_traj.png'%self.n_epoch)
+            data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))
+            h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i)
+            with h5py.File(h5file, "w") as hf:
+                hf.create_dataset("rama_trajectory", data=data)
         
             trs.append(tr)
             self.labels_all.append(labels)
@@ -143,10 +142,10 @@ class Analyzer(object):
         tr.find_keys()
         tr.keys.sort()
 
-        if self.n_epoch==1: fig, ax = plt.subplots()
-        ax.scatter(phi[1], psi[1])# c= set color by n_epoch
-        plt.draw()
-        plt.savefig('%s_traj_ramachandran.png'%self.n_epoch)
+        data = np.column_stack((phi[1], psi[1]))
+        h5file = "data/out/%g_%g_traj_ramachandran.h5"%(self.n_epoch, i)
+        with h5py.File(h5file, "w") as hf:
+            hf.create_dataset("rama_angles", data=data)
 
         return tr.distraj, tr
 
@@ -223,25 +222,6 @@ class Analyzer(object):
             micro_msm.do_rate(method='MLPB', evecs=False, init=smsm.lbrate)
         else:
             micro_msm.do_trans(evecs=True)
-            # plot right 
-            """fig, ax = plt.subplots(1,3, figsize=(12,4))
-            #mat = np.zeros((len(micro_msm.keep_keys),len(micro_msm.keep_keys)), float)
-            mat = np.zeros((20,20), float)
-            for i in [x for x in zip(micro_msm.keep_keys, micro_msm.rvecsT[:,0])]:
-                mat[i[0]%20, int(i[0]/20)] = i[1]
-                #mat[i[0]%len(micro_msm.keep_keys), int(i[0]/len(micro_msm.keep_keys))] = i[1]
-            ax[0].imshow(mat.transpose(), interpolation="none", origin='lower', cmap='hot')
-            mat = np.zeros((20,20), float)
-            for i in [x for x in zip(micro_msm.keep_keys, micro_msm.rvecsT[:,1])]:
-                mat[i[0]%20, int(i[0]/20)] = -i[1]
-            ax[1].imshow(mat.transpose(), interpolation="none", origin='lower', cmap='hot')
-            mat = np.zeros((20,20), float)
-            for i in [x for x in zip(micro_msm.keep_keys, micro_msm.rvecsT[:,2])]:
-                mat[i[0]%20, int(i[0]/20)] = -i[1]
-            _ = ax[2].imshow(mat.transpose(), interpolation="none", origin='lower', cmap='hot')
-            plt.savefig('right_eigs_T.png')"""
-
-        print('eigsT:', micro_msm.tauT[0:10])
 
         self.MSM = micro_msm
 
@@ -355,7 +335,6 @@ class Analyzer(object):
         """
         # Determine distribution of new runs according to 'states'
         n_runs = self.n_runs
-        #print('weigths of states from scoring:',states)#print(self.MSM.keep_states)
         n_msm_runs = np.random.choice(range(len(self.MSM.keep_states)), n_runs, p=states)
         print ('Runs for new epoch:', n_msm_runs)
         
@@ -380,8 +359,7 @@ class Analyzer(object):
                 tpr = tprs[which_tr]
                 analyzer_lib.map_inputs(traj, n, frame, inputs, tpr)
             except IndexError:
-                print('Error in gen_input')
-            #print (n, traj, frame, which_tr)
+                print('Error in gen_input, check n_msm_runs and MSM.keys')
 
         return inputs
 
@@ -397,14 +375,11 @@ class Analyzer(object):
             Dictionary containing all trajectories and corresponding frames
 
         """
-        #global state_kv
         state_kv[s] = []
         n = 0
         for t in self.trajs:
             n +=1
             try:
-                #ivals = np.where(t.distraj == s)[0]
-                #ivals = np.where(t.distraj == self.MSM.keys[s])[0]
                 ivals = analyzer_lib.list_duplicates_of(t.distraj, self.MSM.keys[s])
                 for i in ivals:
                     state_kv[s].append([t.mdt, i, n-1])

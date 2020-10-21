@@ -142,16 +142,16 @@ class Controller(object):
         n = 0
         tprs = self.tprs
         while True:
-            n += 1
-            if n > n_epochs: # or sim_time > max_time:
-#                # Call SuperMSM to converge last MSM
-                break
-
             # ANALYZER #
             self.anal = analyzer.Analyzer(self.trajfiles)
             self.anal.build_msm(n, n_runs, lagt, method='ramagrid', \
                 mcs=mcs, ms=ms, sym=sym, gro=self.gro_initial, rate_mat=rate_mat)
             inputs = self.anal.resampler(tprs, scoring=scoring)
+            
+            n += 1
+            if n > n_epochs: # or sim_time > max_time:
+#                # Call SuperMSM to converge last MSM
+                break
 
             # PRODUCTION #
             tprs, outs, self.trajfiles = [], [], []
@@ -161,8 +161,7 @@ class Controller(object):
                 self.system = system.System(gro, forcefield, water,\
                             constraints=constraints)#topology=self.top
                 self.sys_prepare(gro)
-                # here CLEAN not interesting files!
-                # Prepare the simulation box and thermodynamic ensemble
+                # Set up the simulation box and thermodynamic ensemble
                 self.all_sys_equilibration()
                 tpr, out = 'data/tpr/%s_%s.tpr'%(n, i), 'data/out/%s_%s'%(n, i)
                 launcher_lib.checkfile(tpr)
@@ -171,7 +170,7 @@ class Controller(object):
                 tprs.append(tpr)
                 outs.append(out)
                 self.trajfiles.append('%s.xtc'%out)
-            #print(outs)
+                # CLEAN not interesting files!
 
             # Run parallel short trajectories
             self.npt.mp_run(tprs, outs)
