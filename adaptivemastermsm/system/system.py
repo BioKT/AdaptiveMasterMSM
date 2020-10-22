@@ -73,6 +73,7 @@ class System(object):
             Distance between solute and box sides        
         
         """
+        if self.gro is None: self.gro = 'conf.gro'
         gro = self.gro
         cmd = 'gmx editconf -f %s -o %s -c -d %f -bt cubic' %(gro, out, d)
         print (cmd)
@@ -84,7 +85,7 @@ class System(object):
         Solvates the system using gmx solvate
 
         """
-        # choose a water topology file
+        # Choose a water topology file
         water_dict  = {'tip3p' : 'spc216.gro'}
         if self.wat in water_dict.keys():
             water_topol = water_dict[self.wat]
@@ -111,25 +112,24 @@ class System(object):
             The target salt concentration in M.
 
         """
-        # format the water string
+        # Format the water string
         if not conc:
             ion_str = '-neutral'
         else:
             ion_str = '-conc %g'%conc
 
-        # generate the tpr file required for gmx genion
+        # Generate the tpr file required for gmx genion
         self.mdpfile = system_lib.write_minimization_mdp(self.cons)
         cmd = "gmx grompp -f %s -c %s -p %s -o %s"%(self.mdpfile, inp, top, tpr)
         print(cmd)
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         output, error = p.communicate()
 
-        # runs genion 
+        # Run genion 
         cmd = "gmx genion -s %s -o %s -p %s %s"%(tpr, out, top, ion_str)
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         output, error = p.communicate()
         print(cmd)
-        #return output, error
         self.gro = out
 
 #    def minimize(self, inp='conf_solv_ions.gro', top='topol.top', out='minimization'):

@@ -6,7 +6,7 @@ This file is part of the AdaptiveMasterMSM package.
 import h5py
 import os, sys
 from os import path
-import itertools
+import random
 # Maths
 import numpy as np
 # Plotting
@@ -16,7 +16,7 @@ import seaborn as sns
 sns.set(style="ticks", color_codes=True, font_scale=1.5)
 sns.set_style({"xtick.direction": "in", "ytick.direction": "in"})
 # Clustering
-from sklearn.preprocessing import StandardScaler
+#from sklearn.preprocessing import StandardScaler
 import hdbscan
 import mdtraj as md
 # AdaptiveMasterMSM
@@ -37,14 +37,13 @@ class Analyzer(object):
 
         Parameters
         ----------
-        trajfiles : str
-            Path to trajectory files separated by spaces only
+        trajfiles : list
+            Path(s) to trajectory file(s)
 
         """
         # Read parallel trajectories
         self.data = []
-        print(trajfiles.split())
-        for f in trajfiles.split():
+        for f in trajfiles:
             if not path.isfile(f):
                 raise ValueError("Trajectory file(s) not valid")
             if '.xtc' in f:
@@ -58,10 +57,8 @@ class Analyzer(object):
         # Do MSM and get macrostates build_msm(mcs, ms, lagt, rate_mat=True)
         # Call resampler(macmsm) and gen_input
 
-        # Note: gen_input is only called from outside (controller)
-
-    def build_msm(self, n_runs, lagt, mcs=185, ms=145, dt=1, sym=True,\
-                    n_clusters=0, rate_mat=True, gro=None):
+    def build_msm(self, n_epoch, n_runs, lagt, mcs=185, ms=145, dt=1, sym=True,\
+                    n_clusters=0, rate_mat=True, gro=None, method='hdbscan'):
         """
         Build the MSM for the next round.
         Return macrostates obtained from the MSM.
@@ -86,62 +83,68 @@ class Analyzer(object):
             Build the MSM from K matrix, otherwise T is used
         gro : str
             Path to .gro or .pdb file
+        method : str
+            Discretization method (hdbscan, rama, ramagrid)
 
         """
+        self.n_epoch, self.n_runs, self.n_clusters = n_epoch, n_runs, n_clusters
+        self.lt, self.dt, self.sym, self.rate = lagt, dt, sym, rate_mat
+        self.min_cluster_size, self.min_samples = mcs, ms
         #1- Clustering:
         # one 'labels' per parallel run, TimeSeries will merge all together
         self.labels_all = []
         trs = []
         for i in range(len(self.data)):
             #labels = self.gen_clusters_mueller(i)
-            labels, tr = self.gen_clusters_ramachandran(i, gro, method='hdbscan',\
-                            mcs=mcs, ms=ms)
+            labels, tr = self.gen_clusters_ramachandran(i, gro, method,\
+                            mcs=self.min_cluster_size, ms=self.min_samples)
+        
+            data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))
+            h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i)
+            with h5py.File(h5file, "w") as hf:
+                hf.create_dataset("rama_trajectory", data=data)
+
             trs.append(tr)
             self.labels_all.append(labels)
         self.trajs = trs
 
         #2- do MSM:
         #self.gen_msm(tr_instance=False)
-        self.gen_msm(tr_instance=True, dt=dt, \
-                lagt=lagt, sym=sym)
-#        if self.n_clusters > 0:
-#            self.gen_mmsm()
-#        else:
-#            self.mMSM = self.MSM
-#            self.n_clusters = len(self.mMSM.keep_states)
+        self.gen_msm(tr_instance=True)
+
+        if self.n_clusters > 0:
+            self.gen_macro_msm()
+        else:
+            self.mMSM = self.MSM
+            self.n_clusters = len(self.mMSM.peqK) if self.rate else len(self.mMSM.peqT)
 
         #3- Wrap up
         print("MSM done")
         sys.stdout.flush()
 
-    def gen_clusters_ramachandran(self, i, gro, method='ramagrid', mcs=185, ms=185):
+    def gen_clusters_ramachandran(self, i, gro, method, mcs=185, ms=185):
         """
         Cluster trajectories into microstates by using Ramachandran angle regions
         Return labels (int array) containing trajectory by microstates
 
         """
-        #phi = md.compute_phi(tr.mdt)
-        #psi = md.compute_psi(tr.mdt)
-        #tr = traj.TimeSeries(top=gro, traj=[self.data[i]])
-        tr = traj.TimeSeries(top=gro, traj=self.data[i])
+        tr = traj.TimeSeries(top=gro, traj=self.data[i])#traj=[self.data[i]]
         if method == 'ramagrid':
-            tr.discretize(method='ramagrid', nbins=5)
+            phi, psi = tr.discretize(method='ramagrid', nbins=20)
         elif method == 'hdbscan':
-            tr.discretize(method='hdbscan', mcs=mcs, ms=ms)
+            mcs, ms = self.min_cluster_size, self.min_samples
+            phi, psi = tr.discretize(method='hdbscan', mcs=mcs, ms=ms)
         else:
-            tr.discretize(states=['A', 'E'])
+            phi, psi = tr.discretize(states=['A', 'E'])
         
         tr.find_keys()
         tr.keys.sort()
-#        """
-#        fig, ax = plt.subplots(figsize=(10,3))
-#        ax.plot(tr.mdt.time, [x for x in tr.distraj], lw=2)
-#        ax.set_xlim(0,5000)
-#        ax.set_ylim(0.8,2.2)
-#        ax.set_xlabel('Time (ps)', fontsize=20)
-#        ax.set_ylabel('state', fontsize=20)
-#        plt.savefig('traj.png')
-#        """
+
+        data = np.column_stack((phi[1], psi[1]))
+        h5file = "data/out/%g_%g_traj_ramachandran.h5"%(self.n_epoch, i)
+        with h5py.File(h5file, "w") as hf:
+            hf.create_dataset("rama_angles", data=data)
+
         return tr.distraj, tr
 
     def gen_clusters_mueller(self, i):
@@ -195,6 +198,7 @@ class Analyzer(object):
             True if an instance of trajectory exists
 
         """
+        lagt, dt, sym, rate = self.lt, self.dt, self.sym, self.rate
         # Create an instance of traj for each trajectory and merge in a single list
         if tr_instance:
             distrajs = self.trajs
@@ -215,13 +219,7 @@ class Analyzer(object):
             smsm.do_lbrate()
             micro_msm.do_rate(method='MLPB', evecs=False, init=smsm.lbrate)
         else:
-            micro_msm.do_trans(evecs=False)
-#        fig, ax = plt.subplots()
-#        #ax.errorbar(range(1,2),np.log(micro_msm.tauK[0:2]), fmt='o-')
-#        ax.errorbar(range(1,2),micro_msm.tauT[0:10], fmt='o-')
-#        ax.set_xlabel('Eigenvalue index')
-#        ax.set_ylabel(r'$\tau_i$ (ns)')
-#        plt.savefig('eigs_T.png')       
+            micro_msm.do_trans(evecs=True)
         self.MSM = micro_msm
 
 #    def gen_macro_msm(self, n_clusters=1):
@@ -250,11 +248,13 @@ class Analyzer(object):
 #             cmap=my_cmap, vmin = 0.5)
 #        plt.savefig('fewms.png')
         
-    def resampler(self, scoring='populations', sym=False):
+    def resampler(self, tprs, scoring='populations'):
         """
         
         Parameters
         ----------
+        tprs : list
+            tpr files from Launcher to generate new gro files
         scoring : str
             Scoring function to determine how to resample
 
@@ -265,11 +265,15 @@ class Analyzer(object):
         elif scoring == "populations":
             states = self.populs()
         elif scoring == "non_detailed_balance":
-            if sym: 
+            if self.sym:
                 raise Exception("Cannot impose symmetry with chosen scoring criteria.")
             states = self.non_detbal()
+        elif scoring == "flux":
+            states = self.flux_inbalance()
 
-        self.gen_input(states)
+        inputs = self.gen_input(states.real, tprs)
+
+        return inputs
 
     def populs(self):
         """
@@ -311,7 +315,7 @@ class Analyzer(object):
         flux += np.min(flux)
         return flux/np.sum(flux)
 
-    def gen_input(self, states):
+    def gen_input(self, states, tprs):
         """
         
         Parameters
@@ -321,26 +325,60 @@ class Analyzer(object):
         states : np array
             Scoring of each macrostate
         n_msm_runs : int array
-            Number of runs for each macrostate
+            List of labels from which generate new inputs
+        n_msm_runs_aux : int array
+            Number of new runs for each label
 
         """
         # Determine distribution of new runs according to 'states'
         n_runs = self.n_runs
-        n_msm_runs = []
-        for x_i in states:
-            if np.log(x_i) > 0.5:
-                n_msm_runs.append(np.log(x_i))
-            else:
-                n_msm_runs.append(0.0)
-        fac = n_runs / np.sum(n_msm_runs)
-        n_msm_runs = [fac*x_i for x_i in n_msm_runs]
-        n_msm_runs = [round(x_i) for x_i in n_msm_runs]
+        n_msm_runs = np.random.choice(range(len(self.MSM.keep_states)), n_runs, p=states)
+        print ('Runs for new epoch:', n_msm_runs)
         
-        print(len(n_msm_runs), np.sum(n_msm_runs))
-        print(n_msm_runs, n_runs)
-        
-        # Use weights to randomly choose a frame and create a corresponding .gro file
-        analyzer_lib.gen_input_weights(n_msm_runs, self.labels_all, self.trajs)
+        ## OPTION 1: Use weights to randomly choose a frame and create a corresponding .gro file
+        #n_msm_runs_aux = np.zeros(len(self.MSM.keep_states))
+        ##print(list(n_msm_runs))#print(self.MSM.keep_states)
+        #for i in self.MSM.keep_states:
+        #    n_msm_runs_aux[i] = len(analyzer_lib.list_duplicates_of(list(n_msm_runs), i))
+        #    #n_msm_runs_aux.append(len(n_msm_runs[ n_msm_runs == i ]))#.count(i)
+        #inputs = analyzer_lib.gen_input_weights(n_msm_runs_aux, self.labels_all, self.trajs, tprs)
 
-        # Use a dict containing all trajs, labels and frames to pick randomly a frame
-        # to do ...
+        # OPTION 2: Use a dict containing all trajs, labels and frames to pick randomly a frame
+        state_kv = {}
+        inputs = []
+        for n in n_msm_runs:
+            if n not in state_kv.keys():
+                print ("Building entry for microstate %g"%n)
+                #analyzer_lib.gen_dict_state(n, self.trajs, state_kv)
+                self.gen_dict_state(n, state_kv)
+            try:
+                traj, frame, which_tr = random.choice(state_kv[n])
+                tpr = tprs[which_tr]
+                analyzer_lib.map_inputs(traj, n, frame, inputs, tpr)
+            except IndexError:
+                print('Error in gen_input, check n_msm_runs and MSM.keys')
+
+        return inputs
+
+    def gen_dict_state(self, s, state_kv):
+        """
+        Generates dictionary entry for state s
+    
+        Parameters
+        ----------
+        s : str, int
+            The key for the state
+        state_kv : dict
+            Dictionary containing all trajectories and corresponding frames
+
+        """
+        state_kv[s] = []
+        n = 0
+        for t in self.trajs:
+            n +=1
+            try:
+                ivals = analyzer_lib.list_duplicates_of(t.distraj, self.MSM.keys[s])
+                for i in ivals:
+                    state_kv[s].append([t.mdt, i, n-1])
+            except KeyError:
+                pass
