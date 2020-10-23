@@ -101,7 +101,7 @@ class Analyzer(object):
                             mcs=self.min_cluster_size, ms=self.min_samples)
         
             data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))
-            h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i)
+            h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i+1)
             with h5py.File(h5file, "w") as hf:
                 hf.create_dataset("rama_trajectory", data=data)
         
@@ -265,16 +265,18 @@ class Analyzer(object):
 
         if scoring == "counts":
             states = self.counts()
+            inputs = self.gen_input(states.real, tprs)
         elif scoring == "populations":
             states = self.populs()
+            inputs = self.gen_input(states.real, tprs)
         elif scoring == "non_detailed_balance":
             if self.sym: 
                 raise Exception("Cannot impose symmetry with chosen scoring criteria.")
             states = self.non_detbal()
+            inputs = self.gen_input(states, tprs)
         elif scoring == "flux":
             states = self.flux_inbalance()
-
-        inputs = self.gen_input(states.real, tprs)
+            inputs = self.gen_input(states, tprs)
 
         return inputs
 
@@ -305,17 +307,21 @@ class Analyzer(object):
         total = self.MSM.count + np.transpose(self.MSM.count)
         nondb = abs(self.MSM.count - np.transpose(self.MSM.count))/total
         nondb = np.sum(np.nan_to_num(nondb, 0), axis=1)
-        return nondb/np.sum(nondb)
+        # remove all states not satisfying ergodicity
+        states = [nondb[i] for i in self.MSM.keep_states]
+        states /= np.sum(states)
+        print(len(self.MSM.keep_states), len(states))
+        return states
 
     def flux_inbalance(self):
         """
         Resampling probality proportional to flux imbalance
 
         """
-        flux = [(np.sum(self.MSM.count[x, :]) - np.sum(self.MSM.count[:,x]))/\
+        flux = [abs(np.sum(self.MSM.count[x, :]) - np.sum(self.MSM.count[:,x]))/\
                 (np.sum(self.MSM.count[:,x]) + np.sum(self.MSM.count[x, :])) \
-                for x in range(len(self.MSM.keep_states))]
-        flux += np.min(flux)
+                for x in self.MSM.keep_states]
+        #flux += np.min(flux) this is done by 'abs' above
         return flux/np.sum(flux)
 
     def gen_input(self, states, tprs):
