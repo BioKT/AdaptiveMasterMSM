@@ -11,6 +11,7 @@ import random
 import numpy as np
 # Plotting
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import seaborn as sns
 sns.set(style="ticks", color_codes=True, font_scale=1.5)
 sns.set_style({"xtick.direction": "in", "ytick.direction": "in"})
@@ -40,7 +41,6 @@ class Analyzer(object):
             Path(s) to trajectory file(s)
 
         """
-
         # Read parallel trajectories
         self.data = []
         for f in trajfiles:
@@ -90,7 +90,6 @@ class Analyzer(object):
         self.n_epoch, self.n_runs, self.n_clusters = n_epoch, n_runs, n_clusters
         self.lt, self.dt, self.sym, self.rate = lagt, dt, sym, rate_mat
         self.min_cluster_size, self.min_samples = mcs, ms
-
         #1- Clustering:
         # one 'labels' per parallel run, TimeSeries will merge all together
         self.labels_all = []
@@ -104,10 +103,9 @@ class Analyzer(object):
             h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i+1)
             with h5py.File(h5file, "w") as hf:
                 hf.create_dataset("rama_trajectory", data=data)
-        
+
             trs.append(tr)
             self.labels_all.append(labels)
-        
         self.trajs = trs
 
         #2- do MSM:
@@ -190,7 +188,7 @@ class Analyzer(object):
 
         return labels
 
-    def gen_msm(self, tr_instance=False):
+    def gen_msm(self, tr_instance=False, dt=None, lagt=None, sym=False, rate=False):
         """
         Do MSM and build macrostates
 
@@ -222,7 +220,6 @@ class Analyzer(object):
             micro_msm.do_rate(method='MLPB', evecs=False, init=smsm.lbrate)
         else:
             micro_msm.do_trans(evecs=True)
-
         self.MSM = micro_msm
 
 #    def gen_macro_msm(self, n_clusters=1):
@@ -270,7 +267,7 @@ class Analyzer(object):
             states = self.populs()
             inputs = self.gen_input(states.real, tprs)
         elif scoring == "non_detailed_balance":
-            if self.sym: 
+            if self.sym:
                 raise Exception("Cannot impose symmetry with chosen scoring criteria.")
             states = self.non_detbal()
             inputs = self.gen_input(states, tprs)
