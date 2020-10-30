@@ -110,7 +110,7 @@ class Controller(object):
         self.sys_equilibrate('npt')
 
     def adaptive_sampling(self, n_runs, lagt, mcs=185, ms=145, sym=False, rate_mat=True,\
-                            scoring='populations', n_epochs=2, max_time=1000):
+                            scoring='populations', n_epochs=2, max_time=100000.0):
         """
         Implementation of the Adaptive Sampling algorithm
 
@@ -131,7 +131,7 @@ class Controller(object):
         n_epochs : int
             Number of outer loops in AS algorithm
         max_time : int
-            Maximum simulation time in ns
+            Maximum simulation time in ps
 
         """
         # Set options from 'equilibration' calculations
@@ -140,6 +140,7 @@ class Controller(object):
         constraints = self.system.cons
 
         n = 0
+        sim_time = 0.0
         tprs = self.tprs
         while True:
             # ANALYZER #
@@ -149,7 +150,7 @@ class Controller(object):
             inputs = self.anal.resampler(tprs, scoring=scoring)
             
             n += 1
-            if n > n_epochs: # or sim_time > max_time:
+            if n > n_epochs or sim_time > max_time:
 #                # Call SuperMSM to converge last MSM
                 break
 
@@ -166,7 +167,7 @@ class Controller(object):
                 tpr, out = 'data/tpr/%s_%s.tpr'%(n, i), 'data/out/%s_%s'%(n, i)
                 launcher_lib.checkfile(tpr)
                 launcher_lib.checkfile(out)
-                self.npt.gen_tpr(mdp='prod', tpr=tpr)
+                self.npt.gen_tpr(mdp='prod', tpr=tpr)#, sim_time=sim_time)
                 tprs.append(tpr)
                 outs.append(out)
                 self.trajfiles.append('%s.xtc'%out)

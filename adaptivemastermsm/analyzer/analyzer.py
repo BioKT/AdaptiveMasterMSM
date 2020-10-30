@@ -97,10 +97,10 @@ class Analyzer(object):
         for i in range(len(self.data)):
             #labels = self.gen_clusters_mueller(i)
             labels, tr = self.gen_clusters_ramachandran(i, gro, method,\
-                            mcs=self.min_cluster_size, ms=self.min_samples)
+                            self.min_cluster_size, self.min_samples)
         
             data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))
-            h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i+1)
+            h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i)
             with h5py.File(h5file, "w") as hf:
                 hf.create_dataset("rama_trajectory", data=data)
 
@@ -122,7 +122,7 @@ class Analyzer(object):
         print("MSM done")
         sys.stdout.flush()
 
-    def gen_clusters_ramachandran(self, i, gro, method, mcs=185, ms=185):
+    def gen_clusters_ramachandran(self, i, gro, method, mcs, ms):
         """
         Cluster trajectories into microstates by using Ramachandran angle regions
         Return labels (int array) containing trajectory by microstates
@@ -140,7 +140,7 @@ class Analyzer(object):
         tr.find_keys()
         tr.keys.sort()
 
-        data = np.column_stack((phi[1], psi[1]))
+        data = np.column_stack((phi[1], psi[1], tr.distraj))
         h5file = "data/out/%g_%g_traj_ramachandran.h5"%(self.n_epoch, i)
         with h5py.File(h5file, "w") as hf:
             hf.create_dataset("rama_angles", data=data)
@@ -188,7 +188,7 @@ class Analyzer(object):
 
         return labels
 
-    def gen_msm(self, tr_instance=False, dt=None, lagt=None, sym=False, rate=False):
+    def gen_msm(self, tr_instance=False):
         """
         Do MSM and build macrostates
 
@@ -292,7 +292,13 @@ class Analyzer(object):
         number of visits
 
         """
-        p = 1./np.sum(self.MSM.count, axis=1)
+        #p = 1./np.sum(self.MSM.count, axis=1)
+        p = [(1./np.sum(self.MSM.count[x, :])) \
+            if np.sum(self.MSM.count) != 0     \
+            else 0                             \
+            for x in self.MSM.keep_states]
+        if np.sum(p) == 0:
+            sys.exit(" Error in 'resampler'. Please choose another 'scoring' option")
         return p/np.sum(p)
 
     def non_detbal(self):
@@ -315,10 +321,17 @@ class Analyzer(object):
         Resampling probality proportional to flux imbalance
 
         """
-        flux = [abs(np.sum(self.MSM.count[x, :]) - np.sum(self.MSM.count[:,x]))/\
-                (np.sum(self.MSM.count[:,x]) + np.sum(self.MSM.count[x, :])) \
-                for x in self.MSM.keep_states]
-        #flux += np.min(flux) this is done by 'abs' above
+        #flux = [abs(np.sum(self.MSM.count[x, :]) - np.sum(self.MSM.count[:,x]))/\
+        #        (np.sum(self.MSM.count[:,x]) + np.sum(self.MSM.count[x, :])) \
+        #        for x in self.MSM.keep_states]
+        flux = [(abs(np.sum(self.MSM.count[x,:]) - np.sum(self.MSM.count[:,x]))/\
+        (np.sum(self.MSM.count[:,x]) + np.sum(self.MSM.count[x,:]))) \
+        if (np.sum(self.MSM.count[:,x]) + np.sum(self.MSM.count[x,:])) >= 1
+        else 0 \
+        for x in self.MSM.keep_states] #keep_keys
+        #this is done by above abs: flux += np.min(flux)
+        if np.sum(flux) == 0:
+            sys.exit(" Error in 'resampler'. Please choose another 'scoring' option")
         return flux/np.sum(flux)
 
     def gen_input(self, states, tprs):
@@ -338,6 +351,7 @@ class Analyzer(object):
         """
         # Determine distribution of new runs according to 'states'
         n_runs = self.n_runs
+        print(np.sum(states), len(self.MSM.keep_states),len(states) , states)
         n_msm_runs = np.random.choice(range(len(self.MSM.keep_states)), n_runs, p=states)
         print ('Runs for new epoch:', n_msm_runs)
         
