@@ -109,8 +109,9 @@ class Controller(object):
         self.npt = launcher.Launcher(nvt_system)
         self.sys_equilibrate('npt')
 
-    def adaptive_sampling(self, n_runs, lagt, mcs=185, ms=145, sym=False, rate_mat=True,\
-                            scoring='populations', n_epochs=2, max_time=100000.0):
+    def adaptive_sampling(self, n_runs, lagt, mcs=85, ms=75, sym=False, rate_mat=True,\
+                            scoring='populations', n_epochs=2, max_time=100000.0,\
+                            method='hdbscan'):
         """
         Implementation of the Adaptive Sampling algorithm
 
@@ -145,7 +146,7 @@ class Controller(object):
         while True:
             # ANALYZER #
             self.anal = analyzer.Analyzer(self.trajfiles)
-            self.anal.build_msm(n, n_runs, lagt, method='ramagrid', \
+            self.anal.build_msm(n, n_runs, lagt, method=method, \
                 mcs=mcs, ms=ms, sym=sym, gro=self.gro_initial, rate_mat=rate_mat)
             inputs = self.anal.resampler(tprs, scoring=scoring)
             

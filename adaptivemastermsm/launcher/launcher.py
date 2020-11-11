@@ -48,7 +48,7 @@ class Launcher(object):
         #else:
         filemdp = mdp
         emstep = 0.002
-        nsteps = 150000
+        nsteps = 50000#150000
         if mdp in ["min","nvt","npt","prod"]:
             if mdp is "min": txt = launcher_lib.write_mdp_min()
             if mdp is "nvt": txt = launcher_lib.write_mdp_nvt()
@@ -97,6 +97,10 @@ class Launcher(object):
         """
         # define multiprocessing options
         nproc = mp.cpu_count()
+        if len(tprs) > nproc:
+            sys.exit(" Please reduce number of parallel runs")
+        #self.nt = nproc/len(tprs)
+
         pool = mp.Pool(processes=nproc)
         # generate multiprocessing input
         mpinput = []
@@ -126,6 +130,9 @@ class Launcher(object):
         out = x[1]
 
         # run simulation
+        #if self.nt > 1:
+        #cmd = "gmx mdrun -nt %g -v -s %s -deffnm %s"%(self.nt, tpr, out)
+        #else:
         cmd = "gmx mdrun -nt 1 -v -s %s -deffnm %s"%(tpr, out)
         print(cmd)
         p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)

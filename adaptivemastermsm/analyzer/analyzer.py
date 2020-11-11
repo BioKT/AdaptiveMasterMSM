@@ -57,7 +57,7 @@ class Analyzer(object):
         # Do MSM and get macrostates build_msm(mcs, ms, lagt, rate_mat=True)
         # Call resampler(macmsm) and gen_input
 
-    def build_msm(self, n_epoch, n_runs, lagt, mcs=185, ms=145, dt=1, sym=True,\
+    def build_msm(self, n_epoch, n_runs, lagt, mcs=85, ms=75, dt=1, sym=True,\
                     n_clusters=0, rate_mat=True, gro=None, method='hdbscan'):
         """
         Build the MSM for the next round.
@@ -89,23 +89,22 @@ class Analyzer(object):
         """
         self.n_epoch, self.n_runs, self.n_clusters = n_epoch, n_runs, n_clusters
         self.lt, self.dt, self.sym, self.rate = lagt, dt, sym, rate_mat
-        self.min_cluster_size, self.min_samples = mcs, ms
         #1- Clustering:
         # one 'labels' per parallel run, TimeSeries will merge all together
-        self.labels_all = []
-        trs = []
-        for i in range(len(self.data)):
-            #labels = self.gen_clusters_mueller(i)
-            labels, tr = self.gen_clusters_ramachandran(i, gro, method,\
-                            self.min_cluster_size, self.min_samples)
-        
-            data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))
-            h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i)
-            with h5py.File(h5file, "w") as hf:
-                hf.create_dataset("rama_trajectory", data=data)
+        self.labels_all, trs = [], []
+        if method=='hdbscan':
+            self.labels_all, trs = self.gen_clusters_rama_all(gro, mcs, ms)
+        else:
+            for i in range(len(self.data)):
+                #labels = self.gen_clusters_mueller(i, mcs, ms)
+                labels, tr = self.gen_clusters_rama(i, gro, method)
 
-            trs.append(tr)
-            self.labels_all.append(labels)
+                data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))
+                h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i)
+                with h5py.File(h5file, "w") as hf:
+                    hf.create_dataset("rama_trajectory", data=data)
+                trs.append(tr)
+                self.labels_all.append(labels)
         self.trajs = trs
 
         #2- do MSM:
@@ -122,7 +121,43 @@ class Analyzer(object):
         print("MSM done")
         sys.stdout.flush()
 
-    def gen_clusters_ramachandran(self, i, gro, method, mcs, ms):
+    def gen_clusters_rama_all(self, gro, mcs, ms):
+        """
+        Cluster trajectories into microstates by using Ramachandran angle regions
+        Return labels (int array) containing trajectory by microstates
+
+        """
+        trajs = traj.MultiTimeSeries(top=gro, trajs=self.data)
+        
+        #phi, psi = tr.discretize(method='hdbscan', mcs=mcs, ms=ms)
+        trajs.joint_discretize(mcs=mcs, ms=ms)
+        [tr.find_keys() for tr in trajs.traj_list]
+        [tr.keys.sort for tr in trajs.traj_list]
+
+        phi_cum = []
+        psi_cum = []
+        for tr in trajs.traj_list:
+            phi = md.compute_phi(tr.mdt)
+            psi = md.compute_psi(tr.mdt)
+            phi_cum.append(phi[1])
+            psi_cum.append(psi[1])
+
+        phi_cum = np.vstack(phi_cum)
+        psi_cum = np.vstack(psi_cum)
+
+        ib, ie = 0, 0
+        for i in range(len(trajs.traj_list)):
+            ie += len(trajs.traj_list[0].distraj)
+            #ax[i].scatter(phi_cum[ib:ie], psi_cum[ib:ie], c=trajs.traj_list[i].distraj, s=1)
+            data = np.column_stack((phi_cum[ib:ie], psi_cum[ib:ie], trajs.traj_list[i].distraj))
+            h5file = "data/out/%g_%g_traj_ramachandran.h5"%(self.n_epoch, i)
+            with h5py.File(h5file, "w") as hf:
+                hf.create_dataset("rama_angles", data=data)
+            ib = ie
+
+        return [trajs.traj_list[i].distraj for i in range(len(trajs.traj_list))], trajs.traj_list
+    
+    def gen_clusters_rama(self, i, gro, method):
         """
         Cluster trajectories into microstates by using Ramachandran angle regions
         Return labels (int array) containing trajectory by microstates
@@ -130,10 +165,8 @@ class Analyzer(object):
         """
         tr = traj.TimeSeries(top=gro, traj=self.data[i])#traj=[self.data[i]]
         if method == 'ramagrid':
-            phi, psi = tr.discretize(method='ramagrid', nbins=20)
-        elif method == 'hdbscan':
-            mcs, ms = self.min_cluster_size, self.min_samples
-            phi, psi = tr.discretize(method='hdbscan', mcs=mcs, ms=ms)
+            nbins = 8 + 2*self.n_epoch
+            phi, psi = tr.discretize(method='ramagrid', nbins=nbins)
         else:
             phi, psi = tr.discretize(states=['A', 'E'])
         
@@ -147,7 +180,7 @@ class Analyzer(object):
 
         return tr.distraj, tr
 
-    def gen_clusters_mueller(self, i):
+    def gen_clusters_mueller(self, i, mcs, ms):
         """
         Cluster trajectories into microstates by using HDBSCAN.
         Return labels (int array) containing trajectory by microstates
@@ -155,8 +188,7 @@ class Analyzer(object):
         """
         data = self.data[i]
         X = data[:,[1,2]]
-        hb = hdbscan.HDBSCAN(min_cluster_size = self.min_cluster_size, \
-                            min_samples = self.min_samples).fit(X)
+        hb = hdbscan.HDBSCAN(min_cluster_size = mcs, min_samples = ms).fit(X)
         labels = hb.labels_
         n_micro_clusters = len(set(labels)) - (1 if -1 in labels else 0)
         n_noise = list(labels).count(-1)
@@ -272,6 +304,8 @@ class Analyzer(object):
             states = self.non_detbal()
             inputs = self.gen_input(states, tprs)
         elif scoring == "flux":
+            if self.sym:
+                raise Exception("Cannot impose symmetry with chosen scoring criteria.")
             states = self.flux_inbalance()
             inputs = self.gen_input(states, tprs)
 
