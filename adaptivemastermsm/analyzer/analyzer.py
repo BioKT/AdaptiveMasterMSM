@@ -95,6 +95,13 @@ class Analyzer(object):
         self.labels_all, trs = [], []
         if method=='hdbscan':
             self.labels_all, trs = self.gen_clusters_rama_all(gro, mcs, ms)
+            for i,tr in enumerate(trs):
+                if (i+1) > (len(self.data)-self.n_runs):
+                    data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))
+                    i_aux = i - (self.n_epoch-1)*self.n_runs - self.offset
+                    h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i_aux)
+                    with h5py.File(h5file, "w") as hf:
+                        hf.create_dataset("rama_trajectory", data=data)
         else:
             for i in range(len(self.data)):
                 #labels = self.gen_clusters_mueller(i, mcs, ms)
