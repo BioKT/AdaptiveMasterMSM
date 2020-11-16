@@ -146,9 +146,10 @@ class Controller(object):
         while True:
             # ANALYZER #
             self.anal = analyzer.Analyzer(self.trajfiles)
+            if n == 0: offset = len(self.trajfiles)
             self.anal.build_msm(n, n_runs, lagt, method=method, \
-                mcs=mcs, ms=ms, sym=sym, gro=self.gro_initial, rate_mat=rate_mat)
-            inputs = self.anal.resampler(tprs, scoring=scoring)
+                mcs=mcs, ms=ms, sym=sym, gro=self.gro_initial, rate_mat=rate_mat, offset=offset)
+            inputs = self.anal.resampler(self.tprs, scoring=scoring)
             
             n += 1
             if n > n_epochs or sim_time > max_time:
@@ -156,7 +157,7 @@ class Controller(object):
                 break
 
             # PRODUCTION #
-            tprs, outs, self.trajfiles = [], [], []
+            tprs, outs = [], []
             i = 0
             for gro in inputs:
                 i += 1
@@ -174,6 +175,7 @@ class Controller(object):
                 self.trajfiles.append('%s.xtc'%out)
                 # CLEAN not interesting files!
 
+            [self.tprs.append(tpr) for tpr in tprs]
             # Run parallel short trajectories
             self.npt.mp_run(tprs, outs)
 

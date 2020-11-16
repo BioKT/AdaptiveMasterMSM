@@ -57,8 +57,8 @@ class Analyzer(object):
         # Do MSM and get macrostates build_msm(mcs, ms, lagt, rate_mat=True)
         # Call resampler(macmsm) and gen_input
 
-    def build_msm(self, n_epoch, n_runs, lagt, mcs=85, ms=75, dt=1, sym=True,\
-                    n_clusters=0, rate_mat=True, gro=None, method='hdbscan'):
+    def build_msm(self, n_epoch, n_runs, lagt, mcs=85, ms=75, dt=1, sym=False,\
+                    n_clusters=0, rate_mat=True, gro=None, method='hdbscan', offset=0):
         """
         Build the MSM for the next round.
         Return macrostates obtained from the MSM.
@@ -89,6 +89,7 @@ class Analyzer(object):
         """
         self.n_epoch, self.n_runs, self.n_clusters = n_epoch, n_runs, n_clusters
         self.lt, self.dt, self.sym, self.rate = lagt, dt, sym, rate_mat
+        self.offset = offset
         #1- Clustering:
         # one 'labels' per parallel run, TimeSeries will merge all together
         self.labels_all, trs = [], []
@@ -98,13 +99,15 @@ class Analyzer(object):
             for i in range(len(self.data)):
                 #labels = self.gen_clusters_mueller(i, mcs, ms)
                 labels, tr = self.gen_clusters_rama(i, gro, method)
-
-                data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))
-                h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i)
-                with h5py.File(h5file, "w") as hf:
-                    hf.create_dataset("rama_trajectory", data=data)
                 trs.append(tr)
                 self.labels_all.append(labels)
+                if (i+1) > (len(self.data)-self.n_runs):
+                    data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))
+                    i_aux = i - (self.n_epoch-1)*self.n_runs - self.offset
+                    h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i_aux)
+                    with h5py.File(h5file, "w") as hf:
+                        hf.create_dataset("rama_trajectory", data=data)
+                
         self.trajs = trs
 
         #2- do MSM:
@@ -131,12 +134,12 @@ class Analyzer(object):
         
         #phi, psi = tr.discretize(method='hdbscan', mcs=mcs, ms=ms)
         trajs.joint_discretize(mcs=mcs, ms=ms)
-        [tr.find_keys() for tr in trajs.traj_list]
-        [tr.keys.sort for tr in trajs.traj_list]
 
         phi_cum = []
         psi_cum = []
         for tr in trajs.traj_list:
+            tr.find_keys() #[tr.find_keys() for tr in trajs.traj_list]
+            tr.keys.sort() #[tr.keys.sort() for tr in trajs.traj_list]
             phi = md.compute_phi(tr.mdt)
             psi = md.compute_psi(tr.mdt)
             phi_cum.append(phi[1])
@@ -149,10 +152,12 @@ class Analyzer(object):
         for i in range(len(trajs.traj_list)):
             ie += len(trajs.traj_list[0].distraj)
             #ax[i].scatter(phi_cum[ib:ie], psi_cum[ib:ie], c=trajs.traj_list[i].distraj, s=1)
-            data = np.column_stack((phi_cum[ib:ie], psi_cum[ib:ie], trajs.traj_list[i].distraj))
-            h5file = "data/out/%g_%g_traj_ramachandran.h5"%(self.n_epoch, i)
-            with h5py.File(h5file, "w") as hf:
-                hf.create_dataset("rama_angles", data=data)
+            if (i+1) > (len(trajs.traj_list)-self.n_runs):
+                data = np.column_stack((phi_cum[ib:ie], psi_cum[ib:ie], trajs.traj_list[i].distraj))
+                i_aux = i - (self.n_epoch-1)*self.n_runs - self.offset
+                h5file = "data/out/%g_%g_traj_ramachandran.h5"%(self.n_epoch, i_aux)
+                with h5py.File(h5file, "w") as hf:
+                    hf.create_dataset("rama_angles", data=data)
             ib = ie
 
         return [trajs.traj_list[i].distraj for i in range(len(trajs.traj_list))], trajs.traj_list
@@ -165,18 +170,20 @@ class Analyzer(object):
         """
         tr = traj.TimeSeries(top=gro, traj=self.data[i])#traj=[self.data[i]]
         if method == 'ramagrid':
-            nbins = 8 + 2*self.n_epoch
-            phi, psi = tr.discretize(method='ramagrid', nbins=nbins)
+            #nbins = 8 + 2*self.n_epoch
+            phi, psi = tr.discretize(method='ramagrid', nbins=20)
         else:
             phi, psi = tr.discretize(states=['A', 'E'])
         
         tr.find_keys()
         tr.keys.sort()
 
-        data = np.column_stack((phi[1], psi[1], tr.distraj))
-        h5file = "data/out/%g_%g_traj_ramachandran.h5"%(self.n_epoch, i)
-        with h5py.File(h5file, "w") as hf:
-            hf.create_dataset("rama_angles", data=data)
+        if (i+1) > (len(self.data)-self.n_runs):
+            data = np.column_stack((phi[1], psi[1], tr.distraj))
+            i_aux = i - (self.n_epoch-1)*self.n_runs - self.offset
+            h5file = "data/out/%g_%g_traj_ramachandran.h5"%(self.n_epoch, i_aux)
+            with h5py.File(h5file, "w") as hf:
+                hf.create_dataset("rama_angles", data=data)
 
         return tr.distraj, tr
 
@@ -314,7 +321,7 @@ class Analyzer(object):
     def populs(self):
         """
         Resampling probability inversely proportional to
-        state populations
+        state populations. JCTC 2019 Betz and Dror.
 
         """
         p = 1./self.MSM.peqT
@@ -323,7 +330,7 @@ class Analyzer(object):
     def counts(self):
         """
         Resampling probability inversely proportional to
-        number of visits
+        number of visits.
 
         """
         #p = 1./np.sum(self.MSM.count, axis=1)
@@ -338,7 +345,7 @@ class Analyzer(object):
     def non_detbal(self):
         """
         Resampling probability proportional to lack of detailed
-        balance for each MSM state
+        balance for each MSM state.
 
         """
         total = self.MSM.count + np.transpose(self.MSM.count)
@@ -352,7 +359,7 @@ class Analyzer(object):
 
     def flux_inbalance(self):
         """
-        Resampling probality proportional to flux imbalance
+        Resampling probality proportional to flux imbalance.
 
         """
         #flux = [abs(np.sum(self.MSM.count[x, :]) - np.sum(self.MSM.count[:,x]))/\
