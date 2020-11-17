@@ -29,7 +29,7 @@ class Launcher(object):
         """
         Launcher.system = simsys
 
-    def gen_tpr(self, mdp=None, tpr='data/out.tpr'): #, i, chk=None):
+    def gen_tpr(self, mdp=None, tpr='data/out.tpr'):#, sim_time=None): #, i, chk=None):
         """
         Function for generating tpr files
 
@@ -47,11 +47,13 @@ class Launcher(object):
         #        %(gro, top, mdp, chk, tpr)
         #else:
         filemdp = mdp
+        emstep = 0.002
+        nsteps = 50000#150000
         if mdp in ["min","nvt","npt","prod"]:
             if mdp is "min": txt = launcher_lib.write_mdp_min()
             if mdp is "nvt": txt = launcher_lib.write_mdp_nvt()
             if mdp is "npt": txt = launcher_lib.write_mdp_npt()
-            if mdp is "prod": txt = launcher_lib.write_mdp_prod()
+            if mdp is "prod": txt = launcher_lib.write_mdp_prod(emstep=emstep, nsteps=nsteps)
             filemdp = "data/mdp/%s.mdp" % mdp
             launcher_lib.checkfile(filemdp)
             inp = open(filemdp, "w")
@@ -62,6 +64,7 @@ class Launcher(object):
         print(cmd)
         os.system(cmd)
         self.tpr = tpr
+        #sim_time += emstep * float(nsteps)
 
     def gmx_run(self, out='data/out'):
         """
@@ -94,6 +97,10 @@ class Launcher(object):
         """
         # define multiprocessing options
         nproc = mp.cpu_count()
+        if len(tprs) > nproc:
+            sys.exit(" Please reduce number of parallel runs")
+        #self.nt = nproc/len(tprs)
+
         pool = mp.Pool(processes=nproc)
         # generate multiprocessing input
         mpinput = []
@@ -123,6 +130,9 @@ class Launcher(object):
         out = x[1]
 
         # run simulation
+        #if self.nt > 1:
+        #cmd = "gmx mdrun -nt %g -v -s %s -deffnm %s"%(self.nt, tpr, out)
+        #else:
         cmd = "gmx mdrun -nt 1 -v -s %s -deffnm %s"%(tpr, out)
         print(cmd)
         p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
