@@ -5,6 +5,7 @@ This file is part of the AdaptiveMasterMSM package.
 
 import sys, os
 import numpy as np
+import scipy.linalg as spla
 import random
 from adaptivemastermsm.launcher import launcher_lib
 
@@ -86,4 +87,3 @@ def list_duplicates_of(seq,item):
             locs.append(loc)
             start_at = loc
     return locs
-

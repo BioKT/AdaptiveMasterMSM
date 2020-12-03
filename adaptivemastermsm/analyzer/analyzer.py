@@ -85,16 +85,17 @@ class Analyzer(object):
             Path to .gro or .pdb file
         method : str
             Discretization method (hdbscan, rama, ramagrid)
+        offset : int
+            Number of input trajectories. If None offset=1
 
         """
         self.n_epoch, self.n_runs, self.n_clusters = n_epoch, n_runs, n_clusters
-        self.lt, self.dt, self.sym, self.rate = lagt, dt, sym, rate_mat
-        self.offset = offset
+        self.lt, self.dt, self.sym, self.rate, self.offset = lagt, dt, sym, rate_mat, offset
         #1- Clustering:
         # one 'labels' per parallel run, TimeSeries will merge all together
         self.labels_all, trs = [], []
-        if method=='hdbscan':
-            self.labels_all, trs = self.gen_clusters_rama_all(gro, mcs, ms)
+        if method=='hdbscan' or method=='contacts':
+            self.labels_all, trs = self.gen_clusters_all(gro, method, mcs, ms)
             for i,tr in enumerate(trs):
                 if (i+1) > (len(self.data)-self.n_runs):
                     data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))
@@ -108,7 +109,7 @@ class Analyzer(object):
                 labels, tr = self.gen_clusters_rama(i, gro, method)
                 trs.append(tr)
                 self.labels_all.append(labels)
-                if (i+1) > (len(self.data)-self.n_runs):
+                if (i+1) > (len(self.data)-self.n_runs) and method == 'ramagrid':
                     data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))
                     i_aux = i - (self.n_epoch-1)*self.n_runs - self.offset
                     h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i_aux)
@@ -131,6 +132,52 @@ class Analyzer(object):
         print("MSM done")
         sys.stdout.flush()
 
+    def gen_clusters_all(self, gro, method, mcs, ms):
+        """
+        Cluster all trajectories at once by 'hdbscan' or 'contacts' based methods
+
+        """
+        if method=='hdbscan':
+            labels_all, trs = self.gen_clusters_rama_all(gro, mcs, ms)
+        else:
+            labels_all, trs = self.gen_clusters_contacts_all(gro)
+
+        return labels_all, trs
+    
+    def gen_clusters_contacts_all(self, gro):
+        """
+        Cluster trajectories into microstates by using pairwise contacts
+        Return labels (int array) containing trajectory by microstates
+
+        """
+        trajs = traj.MultiTimeSeries(top=gro, trajs=self.data)
+        
+        trajs.joint_discretize(method='contacts')
+
+        dists_cum = []
+        for tr in trajs.traj_list:
+            tr.find_keys()
+            tr.keys.sort()
+            dists = md.compute_contacts(tr.mdt, contacts='all', periodic=True)
+            dists_cum.append(dists[0])
+
+        dists_cum = np.vstack(dists_cum)
+
+        ib, ie = 0, 0
+        for i in range(len(trajs.traj_list)):
+            ie += len(trajs.traj_list[0].distraj)
+            #ax[i].scatter(phi_cum[ib:ie], psi_cum[ib:ie], c=trajs.traj_list[i].distraj, s=1)
+            if (i+1) > (len(trajs.traj_list)-self.n_runs):
+                data = np.column_stack((dists_cum[ib:ie,0], dists_cum[ib:ie,1],\
+                                        dists_cum[ib:ie,2], trajs.traj_list[i].distraj))
+                i_aux = i - (self.n_epoch-1)*self.n_runs - self.offset
+                h5file = "data/out/%g_%g_traj_contacts.h5"%(self.n_epoch, i_aux)
+                with h5py.File(h5file, "w") as hf:
+                    hf.create_dataset("contacts", data=data)
+            ib = ie
+
+        return [trajs.traj_list[i].distraj for i in range(len(trajs.traj_list))], trajs.traj_list
+
     def gen_clusters_rama_all(self, gro, mcs, ms):
         """
         Cluster trajectories into microstates by using Ramachandran angle regions
@@ -140,13 +187,14 @@ class Analyzer(object):
         trajs = traj.MultiTimeSeries(top=gro, trajs=self.data)
         
         #phi, psi = tr.discretize(method='hdbscan', mcs=mcs, ms=ms)
-        trajs.joint_discretize(mcs=mcs, ms=ms)
+        trajs.joint_discretize(method='hdbscan', mcs=mcs, ms=ms, dPCA=True)
+        sys.exit()
 
         phi_cum = []
         psi_cum = []
         for tr in trajs.traj_list:
-            tr.find_keys() #[tr.find_keys() for tr in trajs.traj_list]
-            tr.keys.sort() #[tr.keys.sort() for tr in trajs.traj_list]
+            tr.find_keys()
+            tr.keys.sort()
             phi = md.compute_phi(tr.mdt)
             psi = md.compute_psi(tr.mdt)
             phi_cum.append(phi[1])
@@ -178,15 +226,17 @@ class Analyzer(object):
         tr = traj.TimeSeries(top=gro, traj=self.data[i])#traj=[self.data[i]]
         if method == 'ramagrid':
             #nbins = 8 + 2*self.n_epoch
-            phi, psi = tr.discretize(method='ramagrid', nbins=20)
+            tr.discretize(method='ramagrid', nbins=20)
         else:
-            phi, psi = tr.discretize(states=['A', 'E'])
+            tr.discretize(states=['A', 'E'])
         
         tr.find_keys()
         tr.keys.sort()
+        phi, psi = md.compute_phi(tr.mdt), md.compute_psi(tr.mdt)
 
         if (i+1) > (len(self.data)-self.n_runs):
             data = np.column_stack((phi[1], psi[1], tr.distraj))
+            if method == 'rama': data = np.column_stack((phi[1], psi[1]))
             i_aux = i - (self.n_epoch-1)*self.n_runs - self.offset
             h5file = "data/out/%g_%g_traj_ramachandran.h5"%(self.n_epoch, i_aux)
             with h5py.File(h5file, "w") as hf:
@@ -261,7 +311,6 @@ class Analyzer(object):
         micro_msm = msm.MSM(data=distrajs, keys=smsm.keys, lagt=lagt, sym=sym)
         micro_msm.do_count()
         if rate:
-            #smsm = msm.SuperMSM(distrajs, sym=True) #keys=distraj.keys
             smsm.do_lbrate()
             micro_msm.do_rate(method='MLPB', evecs=False, init=smsm.lbrate)
         else:
