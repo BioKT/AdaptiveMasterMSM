@@ -98,11 +98,14 @@ class Analyzer(object):
             self.labels_all, trs = self.gen_clusters_all(gro, method, mcs, ms)
             for i,tr in enumerate(trs):
                 if (i+1) > (len(self.data)-self.n_runs):
-                    data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))
+                    #data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))
+                    offset_tba = len(tr.mdt.time) - len(tr.distraj)
+                    data = np.column_stack(([tr.mdt.time[x+offset_tba] for x in \
+                                            range(len(tr.distraj))], [x for x in tr.distraj]))
                     i_aux = i - (self.n_epoch-1)*self.n_runs - self.offset
                     h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i_aux)
                     with h5py.File(h5file, "w") as hf:
-                        hf.create_dataset("rama_trajectory", data=data)
+                        hf.create_dataset("trajectory", data=data)
         else:
             for i in range(len(self.data)):
                 #labels = self.gen_clusters_mueller(i, mcs, ms)
@@ -165,7 +168,7 @@ class Analyzer(object):
 
         ib, ie = 0, 0
         for i in range(len(trajs.traj_list)):
-            ie += len(trajs.traj_list[0].distraj)
+            ie += len(trajs.traj_list[i].distraj)
             #ax[i].scatter(phi_cum[ib:ie], psi_cum[ib:ie], c=trajs.traj_list[i].distraj, s=1)
             if (i+1) > (len(trajs.traj_list)-self.n_runs):
                 data = np.column_stack((dists_cum[ib:ie,0], dists_cum[ib:ie,1],\
@@ -205,7 +208,7 @@ class Analyzer(object):
 
         ib, ie = 0, 0
         for i in range(len(trajs.traj_list)):
-            ie += len(trajs.traj_list[0].distraj)
+            ie += len(trajs.traj_list[i].distraj)
             #ax[i].scatter(phi_cum[ib:ie], psi_cum[ib:ie], c=trajs.traj_list[i].distraj, s=1)
             if (i+1) > (len(trajs.traj_list)-self.n_runs):
                 data = np.column_stack((phi_cum[ib:ie], psi_cum[ib:ie], trajs.traj_list[i].distraj))
