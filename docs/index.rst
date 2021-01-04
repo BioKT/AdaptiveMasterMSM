@@ -20,14 +20,9 @@ matrix.
    :caption: Overview:
    
    Installation
+   Documentation
    License
    Contact
-
-.. toctree::
-   :maxdepth: 3
-   :caption: User Documentation:
-   
-   Getting-Started
 
 .. Indices and tables
 .. ==================

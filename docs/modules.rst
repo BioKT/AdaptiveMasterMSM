@@ -1,7 +1,7 @@
-mastermsm
-=========
+adaptivemastermsm
+=================
 
 .. toctree::
    :maxdepth: 4
 
-   mastermsm
+   adaptivemastermsm
