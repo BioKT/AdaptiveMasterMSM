@@ -20,7 +20,7 @@ matrix.
    :caption: Overview:
    
    Installation
-   documentation
+   Documentation
    License
    Contact
 

@@ -5,15 +5,18 @@ Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
-    adaptivemastermsm.system
-    adaptivemastermsm.launcher
-    adaptivemastermsm.analyzer
+   adaptivemastermsm.controller
+   adaptivemastermsm.analyzer
+   adaptivemastermsm.launcher
+   adaptivemastermsm.system
+
 
 Module contents
 ---------------
 
 .. automodule:: adaptivemastermsm
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

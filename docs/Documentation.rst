@@ -8,14 +8,24 @@ objects that are constructed. First, there is system, which
 result in objects of the ``System`` class; second, command execution
 is managed by launcher, which come in the form of instances of the ``Launcher``
 class; finally, MD data is analyzed by another objects, which are contained
-in the ``Analyzer`` class.
+in the ``Analyzer`` class. In order to coordinate these modules and enable
+the implementation of the adaptive sampling algorithm, ``Controller`` class
+is put on top of everything.
+
+
+
+CONTROLLER module
+-----------------
+.. currentmodule:: adaptivemastermsm
+
+.. autosummary::
+    :toctree:
+
+    controller
+
 
 SYSTEM module
 -------------
-This module contains everything necessary to get your time series data
-into MasterMSM. The main class object within this module is the TimeSeries
-object.
-
 .. currentmodule:: adaptivemastermsm
 
 .. autosummary::

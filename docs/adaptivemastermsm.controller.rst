@@ -1,8 +1,3 @@
-adaptivemastermsm package
-==================================
-
-Submodules
-----------
 
 adaptivemastermsm.controller module
 ------------------------------------------

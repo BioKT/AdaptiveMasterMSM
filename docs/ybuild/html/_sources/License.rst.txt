@@ -1,6 +1,6 @@
-###################################
-License and Citing AdaptiveMasterMSM
-###################################
+#######################
+License and How to cite
+#######################
 
 The use of this software is restricted solely to academic
 institutions and for academic purposes. The authors reserve the
