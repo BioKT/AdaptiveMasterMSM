@@ -10,43 +10,43 @@ is managed by launcher, which come in the form of instances of the ``Launcher``
 class; finally, MD data is analyzed by another objects, which are contained
 in the ``Analyzer`` class.
 
-Trajectory module
------------------
+SYSTEM module
+-------------
 This module contains everything necessary to get your time series data
 into MasterMSM. The main class object within this module is the TimeSeries
 object.
 
-.. currentmodule:: mastermsm
+.. currentmodule:: adaptivemastermsm
 
 .. autosummary::
     :toctree: 
 
-    trajectory 
+    system
 
 
-MSM module
-----------
-.. currentmodule:: mastermsm
-
-.. autosummary::
-    :toctree:
-
-    msm 
-
-
-FEWSM module
------------
-.. currentmodule:: mastermsm
+LAUNCHER module
+---------------
+.. currentmodule:: adaptivemastermsm
 
 .. autosummary::
     :toctree:
 
-    fewsm
+    launcher
+
+
+ANALYZER module
+---------------
+.. currentmodule:: adaptivemastermsm
+
+.. autosummary::
+    :toctree:
+
+    analyzer
     
 Examples
 --------
 We have put together a few simple Python notebooks to help you learn the basics
-of the MasterMSM package. They are based on data derived from either model systems
-or from molecular dynamics simulations of some simple (albeit realistic) biomolecules.
-You can find the notebooks in the following 
-`link <https://github.com/daviddesancho/MasterMSM/tree/master/examples>`_.
+of the AdaptiveMasterMSM package. They are based on data derived from either model
+systems or from molecular dynamics simulations of some simple (albeit realistic)
+biomolecules. You can find the notebooks in the following 
+`link <https://github.com/BioKT/AdaptiveMasterMSM/tree/develop/examples>`_.

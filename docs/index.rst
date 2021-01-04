@@ -12,7 +12,7 @@ to determine where best to sample from. The latter is decided according to
 (1) low-counts and (2) populations metrics, despite more options are being
 investigated. In contrast to other similar computer programs, AdaptiveMasterMSM
 employs the MasterMSM python package to construct the Markov state models,
-which works with the rate matrix instead of the usually employed transition
+which allows to work with the rate matrix instead of the usually employed transition
 matrix.
 
 .. toctree::
@@ -20,7 +20,7 @@ matrix.
    :caption: Overview:
    
    Installation
-   Documentation
+   documentation
    License
    Contact
 
