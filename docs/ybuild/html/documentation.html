@@ -1,0 +1,185 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modules &#8212; AdaptiveMasterMSM 0.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="adaptivemastermsm.system package" href="adaptivemastermsm.system.html" />
+    <link rel="prev" title="Download and Installation" href="Installation.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="adaptivemastermsm.system.html" title="adaptivemastermsm.system package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="Installation.html" title="Download and Installation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">AdaptiveMasterMSM 0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Modules</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="modules">
+<span id="documentation"></span><h1>Modules<a class="headerlink" href="#modules" title="Permalink to this headline">¶</a></h1>
+<p>Adaptivemastermsm is a Python package that is divided in three main subpackages.
+This way of structuring the code derives from the three main types of
+objects that are constructed. First, there is system, which
+result in objects of the <code class="docutils literal notranslate"><span class="pre">System</span></code> class; second, command execution
+is managed by launcher, which come in the form of instances of the <code class="docutils literal notranslate"><span class="pre">Launcher</span></code>
+class; finally, MD data is analyzed by another objects, which are contained
+in the <code class="docutils literal notranslate"><span class="pre">Analyzer</span></code> class.</p>
+<div class="section" id="system-module">
+<h2>SYSTEM module<a class="headerlink" href="#system-module" title="Permalink to this headline">¶</a></h2>
+<p>This module contains everything necessary to get your time series data
+into MasterMSM. The main class object within this module is the TimeSeries
+object.</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="adaptivemastermsm.system.html#module-adaptivemastermsm.system" title="adaptivemastermsm.system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">system</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="launcher-module">
+<h2>LAUNCHER module<a class="headerlink" href="#launcher-module" title="Permalink to this headline">¶</a></h2>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="adaptivemastermsm.launcher.html#module-adaptivemastermsm.launcher" title="adaptivemastermsm.launcher"><code class="xref py py-obj docutils literal notranslate"><span class="pre">launcher</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="analyzer-module">
+<h2>ANALYZER module<a class="headerlink" href="#analyzer-module" title="Permalink to this headline">¶</a></h2>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="adaptivemastermsm.analyzer.html#module-adaptivemastermsm.analyzer" title="adaptivemastermsm.analyzer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">analyzer</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<p>We have put together a few simple Python notebooks to help you learn the basics
+of the AdaptiveMasterMSM package. They are based on data derived from either model
+systems or from molecular dynamics simulations of some simple (albeit realistic)
+biomolecules. You can find the notebooks in the following
+<a class="reference external" href="https://github.com/BioKT/AdaptiveMasterMSM/tree/develop/examples">link</a>.</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/Logo_Web.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Modules</a><ul>
+<li><a class="reference internal" href="#system-module">SYSTEM module</a></li>
+<li><a class="reference internal" href="#launcher-module">LAUNCHER module</a></li>
+<li><a class="reference internal" href="#analyzer-module">ANALYZER module</a></li>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Installation.html"
+                        title="previous chapter">Download and Installation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="adaptivemastermsm.system.html"
+                        title="next chapter">adaptivemastermsm.system package</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/documentation.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="adaptivemastermsm.system.html" title="adaptivemastermsm.system package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="Installation.html" title="Download and Installation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">AdaptiveMasterMSM 0.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Modules</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, David de Sancho and Ion Mitxelena.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+  </body>
+</html>

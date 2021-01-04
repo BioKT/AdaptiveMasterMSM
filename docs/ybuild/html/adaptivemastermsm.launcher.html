@@ -1,0 +1,221 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>adaptivemastermsm.launcher package &#8212; AdaptiveMasterMSM 0.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="adaptivemastermsm.analyzer package" href="adaptivemastermsm.analyzer.html" />
+    <link rel="prev" title="adaptivemastermsm.system package" href="adaptivemastermsm.system.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="adaptivemastermsm.analyzer.html" title="adaptivemastermsm.analyzer package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="adaptivemastermsm.system.html" title="adaptivemastermsm.system package"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">AdaptiveMasterMSM 0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="documentation.html" accesskey="U">Modules</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">adaptivemastermsm.launcher package</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="adaptivemastermsm-launcher-package">
+<h1>adaptivemastermsm.launcher package<a class="headerlink" href="#adaptivemastermsm-launcher-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-adaptivemastermsm.launcher.launcher">
+<span id="adaptivemastermsm-launcher-launcher-module"></span><h2>adaptivemastermsm.launcher.launcher module<a class="headerlink" href="#module-adaptivemastermsm.launcher.launcher" title="Permalink to this headline">¶</a></h2>
+<p>This file is part of the AdaptiveMasterMSM package.</p>
+<dl class="py class">
+<dt id="adaptivemastermsm.launcher.launcher.Launcher">
+<em class="property">class </em><code class="sig-prename descclassname">adaptivemastermsm.launcher.launcher.</code><code class="sig-name descname">Launcher</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">simsys</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/launcher/launcher.html#Launcher"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.launcher.launcher.Launcher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Call GROMACS and process output to pass it to class analyzer</p>
+<dl class="py method">
+<dt id="adaptivemastermsm.launcher.launcher.Launcher.gen_tpr">
+<code class="sig-name descname">gen_tpr</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mdp</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tpr</span><span class="o">=</span><span class="default_value">'data/out.tpr'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/launcher/launcher.html#Launcher.gen_tpr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.launcher.launcher.Launcher.gen_tpr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function for generating tpr files</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mdp</strong> (<em>str</em>) – The parameter input file</p></li>
+<li><p><strong>tpr</strong> (<em>str</em>) – The Gromacs run input file</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.launcher.launcher.Launcher.gmx_run">
+<code class="sig-name descname">gmx_run</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">out</span><span class="o">=</span><span class="default_value">'data/out'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/launcher/launcher.html#Launcher.gmx_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.launcher.launcher.Launcher.gmx_run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs MD simulations using gmx mdrun</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tpr</strong> (<em>str</em>) – Gromacs run input file</p></li>
+<li><p><strong>out</strong> (<em>str</em>) – Root filename for output</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.launcher.launcher.Launcher.gmx_worker">
+<code class="sig-name descname">gmx_worker</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/launcher/launcher.html#Launcher.gmx_worker"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.launcher.launcher.Launcher.gmx_worker" title="Permalink to this definition">¶</a></dt>
+<dd><p>mp worker for running Gromacs jobs</p>
+<p>–&gt;Shall we use ‘multi’ flag from Gromacs?</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>list</em>) – List containing input for each mp worker. Includes:
+path to tpr file
+path to inp/out file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.launcher.launcher.Launcher.mp_run">
+<code class="sig-name descname">mp_run</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tprs</span></em>, <em class="sig-param"><span class="n">outs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/launcher/launcher.html#Launcher.mp_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.launcher.launcher.Launcher.mp_run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Driver for gmx_worker</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-adaptivemastermsm.launcher.launcher_lib">
+<span id="adaptivemastermsm-launcher-launcher-lib-module"></span><h2>adaptivemastermsm.launcher.launcher_lib module<a class="headerlink" href="#module-adaptivemastermsm.launcher.launcher_lib" title="Permalink to this headline">¶</a></h2>
+<p>This file is part of the AdaptiveMasterMSM package.</p>
+<dl class="py function">
+<dt id="adaptivemastermsm.launcher.launcher_lib.checkfile">
+<code class="sig-prename descclassname">adaptivemastermsm.launcher.launcher_lib.</code><code class="sig-name descname">checkfile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inp</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/launcher/launcher_lib.html#checkfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.launcher.launcher_lib.checkfile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="adaptivemastermsm.launcher.launcher_lib.write_mdp_min">
+<code class="sig-prename descclassname">adaptivemastermsm.launcher.launcher_lib.</code><code class="sig-name descname">write_mdp_min</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">emstep</span><span class="o">=</span><span class="default_value">0.001</span></em>, <em class="sig-param"><span class="n">nsteps</span><span class="o">=</span><span class="default_value">50000</span></em>, <em class="sig-param"><span class="n">constraints</span><span class="o">=</span><span class="default_value">'none'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/launcher/launcher_lib.html#write_mdp_min"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.launcher.launcher_lib.write_mdp_min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="adaptivemastermsm.launcher.launcher_lib.write_mdp_npt">
+<code class="sig-prename descclassname">adaptivemastermsm.launcher.launcher_lib.</code><code class="sig-name descname">write_mdp_npt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dt</span><span class="o">=</span><span class="default_value">0.002</span></em>, <em class="sig-param"><span class="n">nsteps</span><span class="o">=</span><span class="default_value">50000</span></em>, <em class="sig-param"><span class="n">constraints</span><span class="o">=</span><span class="default_value">'h-bonds'</span></em>, <em class="sig-param"><span class="n">ref_t</span><span class="o">=</span><span class="default_value">300</span></em>, <em class="sig-param"><span class="n">ref_p</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/launcher/launcher_lib.html#write_mdp_npt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.launcher.launcher_lib.write_mdp_npt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="adaptivemastermsm.launcher.launcher_lib.write_mdp_nvt">
+<code class="sig-prename descclassname">adaptivemastermsm.launcher.launcher_lib.</code><code class="sig-name descname">write_mdp_nvt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dt</span><span class="o">=</span><span class="default_value">0.002</span></em>, <em class="sig-param"><span class="n">nsteps</span><span class="o">=</span><span class="default_value">50000</span></em>, <em class="sig-param"><span class="n">constraints</span><span class="o">=</span><span class="default_value">'h-bonds'</span></em>, <em class="sig-param"><span class="n">ref_t</span><span class="o">=</span><span class="default_value">300</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/launcher/launcher_lib.html#write_mdp_nvt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.launcher.launcher_lib.write_mdp_nvt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="adaptivemastermsm.launcher.launcher_lib.write_mdp_prod">
+<code class="sig-prename descclassname">adaptivemastermsm.launcher.launcher_lib.</code><code class="sig-name descname">write_mdp_prod</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">emstep</span><span class="o">=</span><span class="default_value">0.002</span></em>, <em class="sig-param"><span class="n">nsteps</span><span class="o">=</span><span class="default_value">50000</span></em>, <em class="sig-param"><span class="n">constraints</span><span class="o">=</span><span class="default_value">'h-bonds'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/launcher/launcher_lib.html#write_mdp_prod"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.launcher.launcher_lib.write_mdp_prod" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-adaptivemastermsm.launcher">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-adaptivemastermsm.launcher" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/Logo_Web.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">adaptivemastermsm.launcher package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-adaptivemastermsm.launcher.launcher">adaptivemastermsm.launcher.launcher module</a></li>
+<li><a class="reference internal" href="#module-adaptivemastermsm.launcher.launcher_lib">adaptivemastermsm.launcher.launcher_lib module</a></li>
+<li><a class="reference internal" href="#module-adaptivemastermsm.launcher">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="adaptivemastermsm.system.html"
+                        title="previous chapter">adaptivemastermsm.system package</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="adaptivemastermsm.analyzer.html"
+                        title="next chapter">adaptivemastermsm.analyzer package</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/adaptivemastermsm.launcher.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="adaptivemastermsm.analyzer.html" title="adaptivemastermsm.analyzer package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="adaptivemastermsm.system.html" title="adaptivemastermsm.system package"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">AdaptiveMasterMSM 0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="documentation.html" >Modules</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">adaptivemastermsm.launcher package</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, David de Sancho and Ion Mitxelena.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+  </body>
+</html>

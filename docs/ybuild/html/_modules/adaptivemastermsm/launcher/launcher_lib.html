@@ -1,0 +1,353 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>adaptivemastermsm.launcher.launcher_lib &#8212; AdaptiveMasterMSM 0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">AdaptiveMasterMSM 0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">adaptivemastermsm.launcher.launcher_lib</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for adaptivemastermsm.launcher.launcher_lib</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file is part of the AdaptiveMasterMSM package.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1">#!/usr/bin/env python</span>
+
+<span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span>
+
+<div class="viewcode-block" id="checkfile"><a class="viewcode-back" href="../../../adaptivemastermsm.launcher.html#adaptivemastermsm.launcher.launcher_lib.checkfile">[docs]</a><span class="k">def</span> <span class="nf">checkfile</span><span class="p">(</span><span class="n">inp</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">inp</span><span class="p">[:</span><span class="n">inp</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)]):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">inp</span><span class="p">[:</span><span class="n">inp</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)])</span></div>
+
+<span class="c1">#def clean_working_directory():</span>
+<span class="c1">#</span>
+<span class="c1">#    print (&quot;Cleaning up...&quot;)</span>
+<span class="c1">#    os.system(&#39;rm \#*&#39;)</span>
+<span class="c1">#    os.system(&#39;mkdir logs&#39;)</span>
+<span class="c1">#    os.system(&#39;mv *.log logs&#39;)</span>
+<span class="c1">#    os.system(&#39;rm *.trr *.top *.itp *.edr *.cpt *.tpr out.gro conf.gro&#39;)</span>
+<span class="c1">#    os.system(&#39;mv equilibration.xtc *.mdp *.gro logs&#39;)</span>
+
+<div class="viewcode-block" id="write_mdp_min"><a class="viewcode-back" href="../../../adaptivemastermsm.launcher.html#adaptivemastermsm.launcher.launcher_lib.write_mdp_min">[docs]</a><span class="k">def</span> <span class="nf">write_mdp_min</span><span class="p">(</span><span class="n">emstep</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">nsteps</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span> <span class="n">constraints</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">):</span>
+
+    <span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    ; GROMACS mdp minimization options</span>
+<span class="s2">    integrator               = steep</span>
+<span class="s2">    emstep                   = </span><span class="si">%f</span><span class="s2"></span>
+<span class="s2">    emtol                    = 10.0</span>
+<span class="s2">    nsteps                   = </span><span class="si">%d</span><span class="s2"></span>
+<span class="s2">    nstxout                  = 0</span>
+<span class="s2">    nstvout                  = 0</span>
+<span class="s2">    nstlog                   = 1000</span>
+<span class="s2">    nstenergy                = 0</span>
+<span class="s2">    nstxtcout                = 0</span>
+<span class="s2">    xtc_grps                 = System</span>
+<span class="s2">    energygrps               =</span>
+<span class="s2">    nstlist                  = 1</span>
+<span class="s2">    ns_type                  = grid</span>
+<span class="s2">    pbc                      = xyz</span>
+<span class="s2">    periodic_molecules       = no</span>
+<span class="s2">    rlist                    = 1.0</span>
+<span class="s2">    rcoulomb                 = 1.0</span>
+<span class="s2">    rvdw                     = 1.0</span>
+<span class="s2">    tcoupl                   = no</span>
+<span class="s2">    Pcoupl                   = no</span>
+<span class="s2">    gen_vel                  = yes</span>
+<span class="s2">    constraints              = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">    continuation             = no</span>
+<span class="s2">    morse                    = no</span>
+<span class="s2">    implicit_solvent         = no</span>
+<span class="s2">    &quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">emstep</span><span class="p">,</span> <span class="n">nsteps</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">txt</span></div>
+
+<div class="viewcode-block" id="write_mdp_nvt"><a class="viewcode-back" href="../../../adaptivemastermsm.launcher.html#adaptivemastermsm.launcher.launcher_lib.write_mdp_nvt">[docs]</a><span class="k">def</span> <span class="nf">write_mdp_nvt</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="mf">0.002</span><span class="p">,</span> <span class="n">nsteps</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span> <span class="n">constraints</span><span class="o">=</span><span class="s2">&quot;h-bonds&quot;</span><span class="p">,</span> <span class="n">ref_t</span><span class="o">=</span><span class="mi">300</span><span class="p">):</span>
+
+    <span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    define                  = -DPOSRES</span>
+<span class="s2">    integrator              = md</span>
+<span class="s2">    dt                      = </span><span class="si">%f</span><span class="s2"> ; ps</span>
+<span class="s2">    nsteps                  = </span><span class="si">%d</span><span class="s2"> ; 100 ps</span>
+<span class="s2">    nstlog                  = 1000</span>
+<span class="s2">    nstenergy               = 1000</span>
+<span class="s2">    nstxout-compressed      = 1000</span>
+<span class="s2">    constraint_algorithm    = lincs</span>
+<span class="s2">    constraints             = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">    lincs_iter              = 1</span>
+<span class="s2">    lincs_order             = 4</span>
+<span class="s2">    nstlist                 = 10</span>
+<span class="s2">    ns_type                 = grid</span>
+<span class="s2">    cutoff-scheme           = verlet</span>
+<span class="s2">    coulombtype             = pme</span>
+<span class="s2">    rvdw                    = 1.</span>
+<span class="s2">    rcoulomb                = 1.</span>
+<span class="s2">    ;# with PME we should not have to use coupling groups</span>
+<span class="s2">    tcoupl                  = v-rescale</span>
+<span class="s2">    tc_grps                 = protein non-protein</span>
+<span class="s2">    tau_t                   = 0.1   0.1</span>
+<span class="s2">    ref_t                   = </span><span class="si">%d</span><span class="s2">   </span><span class="si">%d</span><span class="s2"></span>
+<span class="s2">    Pcoupl                  = no</span>
+<span class="s2">    pbc                     = xyz</span>
+<span class="s2">    gen_vel                 = yes</span>
+<span class="s2">    gen_temp                = 10.0</span>
+<span class="s2">    gen_seed                = -1</span>
+<span class="s2">    &quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">nsteps</span><span class="p">,</span> <span class="n">constraints</span><span class="p">,</span> <span class="n">ref_t</span><span class="p">,</span> <span class="n">ref_t</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">txt</span></div>
+
+<div class="viewcode-block" id="write_mdp_npt"><a class="viewcode-back" href="../../../adaptivemastermsm.launcher.html#adaptivemastermsm.launcher.launcher_lib.write_mdp_npt">[docs]</a><span class="k">def</span> <span class="nf">write_mdp_npt</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="mf">0.002</span><span class="p">,</span> <span class="n">nsteps</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span> <span class="n">constraints</span><span class="o">=</span><span class="s2">&quot;h-bonds&quot;</span><span class="p">,</span>\
+                    <span class="n">ref_t</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">ref_p</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+
+    <span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    refcoord_scaling        = com</span>
+<span class="s2">    integrator              = md</span>
+<span class="s2">    dt                      = </span><span class="si">%f</span><span class="s2"></span>
+<span class="s2">    nsteps                  = </span><span class="si">%d</span><span class="s2"></span>
+<span class="s2">    nstlog                  = 1000</span>
+<span class="s2">    nstenergy               = 1000</span>
+<span class="s2">    nstxout-compressed      = 1000</span>
+<span class="s2">    compressed-x-grps       = non-Water</span>
+<span class="s2">    continuation            = yes</span>
+<span class="s2">    constraint_algorithm    = lincs</span>
+<span class="s2">    constraints             = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">    lincs_iter              = 1</span>
+<span class="s2">    lincs_order             = 4</span>
+<span class="s2">    cutoff-scheme           = verlet</span>
+<span class="s2">    nstlist                 = 10</span>
+<span class="s2">    ns_type                 = grid</span>
+<span class="s2">    coulombtype             = pme</span>
+<span class="s2">    pme_order               = 4</span>
+<span class="s2">    fourier_spacing         = 0.16</span>
+<span class="s2">    rvdw                    = 1.</span>
+<span class="s2">    rcoulomb                = 1.</span>
+<span class="s2">    tcoupl                  = v-rescale</span>
+<span class="s2">    tc_grps                 = protein non-protein</span>
+<span class="s2">    tau_t                   = 0.1   0.1</span>
+<span class="s2">    ref_t                   = </span><span class="si">%d</span><span class="s2">   </span><span class="si">%d</span><span class="s2"></span>
+<span class="s2">    ; Isotropic pressure coupling is now on</span>
+<span class="s2">    Pcoupl                  = Berendsen</span>
+<span class="s2">    Pcoupltype              = isotropic</span>
+<span class="s2">    tau_p                   = 2.0</span>
+<span class="s2">    ref_p                   = </span><span class="si">%f</span><span class="s2"></span>
+<span class="s2">    compressibility         = 4.5e-5</span>
+<span class="s2">    pbc                     = xyz</span>
+<span class="s2">    gen_vel                 = no</span>
+<span class="s2">    &quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">nsteps</span><span class="p">,</span> <span class="n">constraints</span><span class="p">,</span> <span class="n">ref_t</span><span class="p">,</span> <span class="n">ref_t</span><span class="p">,</span> <span class="n">ref_p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">txt</span></div>
+
+<div class="viewcode-block" id="write_mdp_prod"><a class="viewcode-back" href="../../../adaptivemastermsm.launcher.html#adaptivemastermsm.launcher.launcher_lib.write_mdp_prod">[docs]</a><span class="k">def</span> <span class="nf">write_mdp_prod</span><span class="p">(</span><span class="n">emstep</span><span class="o">=</span><span class="mf">0.002</span><span class="p">,</span> <span class="n">nsteps</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span> <span class="n">constraints</span><span class="o">=</span><span class="s2">&quot;h-bonds&quot;</span><span class="p">):</span>
+
+    <span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    ; GROMACS mdp production options</span>
+<span class="s2">    integrator   		    = sd</span>
+<span class="s2">    dt                      = </span><span class="si">%f</span><span class="s2"> ; in ps</span>
+<span class="s2">    nsteps  			    = </span><span class="si">%d</span><span class="s2"></span>
+<span class="s2">    nstlog			        = 100</span>
+<span class="s2">    nstenergy       		= 100</span>
+<span class="s2">    nstxout-compressed	    = 100</span>
+<span class="s2">    ; nstxtcout               = 100</span>
+<span class="s2">    ; xtc-grps                = protein</span>
+<span class="s2">    compressed-x-grps	    = non-Water</span>
+<span class="s2">    continuation		    = yes</span>
+<span class="s2">    constraint_algorithm    = lincs  </span>
+<span class="s2">    constraints             = </span><span class="si">%s</span><span class="s2"></span>
+<span class="s2">    lincs_iter              = 1      </span>
+<span class="s2">    lincs_order             = 4      </span>
+<span class="s2">    nstlist			        = 10</span>
+<span class="s2">    ns_type			        = grid</span>
+<span class="s2">    cutoff-scheme		    = verlet </span>
+<span class="s2">    coulombtype 		    = pme</span>
+<span class="s2">    rvdw                    = 1.</span>
+<span class="s2">    rcoulomb               	= 1.</span>
+<span class="s2">    tc_grps                 = protein non-protein </span>
+<span class="s2">    tau_t                   = 1	1</span>
+<span class="s2">    ref_t                   = 300.0 300.0</span>
+<span class="s2">    Pcoupl                  = no</span>
+<span class="s2">    gen_vel                 = no</span>
+<span class="s2">    &quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">emstep</span><span class="p">,</span> <span class="n">nsteps</span><span class="p">,</span> <span class="n">constraints</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">txt</span></div>
+
+<span class="c1">#integrator              = md</span>
+<span class="c1">#dt                      = 0.004</span>
+<span class="c1">#nsteps                  = 150000000 ; 600ns</span>
+<span class="c1">#nstlog                  = 2500</span>
+<span class="c1">#nstxout                 = 2500</span>
+<span class="c1">#nstvout                 = 2500</span>
+<span class="c1">#nstfout                 = 2500</span>
+<span class="c1">#nstcalcenergy           = 2500</span>
+<span class="c1">#nstenergy               = 2500</span>
+<span class="c1">#;energygrps              = Protein Non-Protein ; Not available for GPU-based runs</span>
+<span class="c1">#;</span>
+<span class="c1">#cutoff-scheme           = Verlet</span>
+<span class="c1">#nstlist                 = 20</span>
+<span class="c1">#coulombtype             = pme</span>
+<span class="c1">#rcoulomb                = 1.2</span>
+<span class="c1">#vdwtype                 = Cut-off</span>
+<span class="c1">#vdw-modifier            = Force-switch</span>
+<span class="c1">#rvdw_switch             = 1.0</span>
+<span class="c1">#rvdw                    = 1.2</span>
+<span class="c1">#;</span>
+<span class="c1">#tcoupl                  = V-rescale</span>
+<span class="c1">#tc_grps                 = Protein Non-Protein</span>
+<span class="c1">#tau_t                   = 0.1  0.1</span>
+<span class="c1">#ref_t                   = 310   310</span>
+<span class="c1">#nsttcouple              = 10</span>
+<span class="c1">#;</span>
+<span class="c1">#pcoupl                  = Parrinello-Rahman</span>
+<span class="c1">#pcoupltype              = isotropic</span>
+<span class="c1">#tau_p                   = 2.0</span>
+<span class="c1">#compressibility         = 4.5e-5</span>
+<span class="c1">#ref_p                   = 1.0</span>
+<span class="c1">#;</span>
+<span class="c1">#constraints             = all-bonds</span>
+<span class="c1">#constraint_algorithm    = LINCS</span>
+<span class="c1">#continuation            = yes</span>
+<span class="c1">#;</span>
+<span class="c1">#refcoord_scaling        = com</span>
+<span class="c1">#DispCorr                = EnerPres</span>
+<span class="c1">#gen-vel                 = no     ; Assign velocities to particles by taking them randomly from a Maxwell distributioni</span>
+<span class="c1">#gen-temp                = 310</span>
+
+<span class="c1">#def write_mdp_user(params):</span>
+<span class="c1">#</span>
+<span class="c1">#    txt = &quot;&quot;&quot;; GROMACS mdp options</span>
+<span class="c1">#    ; Run parameters</span>
+<span class="c1">#    integrator               = md</span>
+<span class="c1">#    dt                       = %f</span>
+<span class="c1">#    ; Output control</span>
+<span class="c1">#    nsteps                   = %d</span>
+<span class="c1">#    nstxout                  = 0</span>
+<span class="c1">#    nstvout                  = 0</span>
+<span class="c1">#    nstlog                   = %d</span>
+<span class="c1">#    nstenergy                = 0</span>
+<span class="c1">#    nstxout-compressed       = %d</span>
+<span class="c1">#    compressed-x-grps        = System</span>
+<span class="c1">#    ; Neighbors</span>
+<span class="c1">#    cutoff-scheme            = Verlet ; Buffered neighbor searching</span>
+<span class="c1">#    ns_type                  = grid   ; search neighboring grid cells</span>
+<span class="c1">#    rvdw                     = 0.1</span>
+<span class="c1">#    ; rvdw_switch              = 1.0</span>
+<span class="c1">#    pbc                      = xyz</span>
+<span class="c1">#    rlist                    = 0.03</span>
+<span class="c1">#    nstlist                  = 10</span>
+<span class="c1">#    ; Electrostatics</span>
+<span class="c1">#    coulombtype              = PME  ; Particle Mesh Ewald for long-range electrostatics</span>
+<span class="c1">#    rcoulomb                 = 0.1  ; short-range electrostatic cutoff (in nm)</span>
+<span class="c1">#    ; fourier_nx               = 0</span>
+<span class="c1">#    ; fourier_ny               = 0</span>
+<span class="c1">#    ; fourier_nz               = 0</span>
+<span class="c1">#    ; optimize_fft             = yes</span>
+<span class="c1">#    pme_order                = 4        ; cubic interpolation</span>
+<span class="c1">#    fourierspacing           = 0.08     ; grid spacing for FFT</span>
+<span class="c1">#    DispCorr                 = EnerPres ; account for cut-off vdW scheme</span>
+<span class="c1">#    ; T and P coupling</span>
+<span class="c1">#    tcoupl                   = %s</span>
+<span class="c1">#    tc_grps                  = System</span>
+<span class="c1">#    ; tc_grps                  = Protein Non-Protein ; two coupling groups-more accurate</span>
+<span class="c1">#    tau_t                    = 0.1</span>
+<span class="c1">#    ref_t                    = %f</span>
+<span class="c1">#    pcoupl                   = %s</span>
+<span class="c1">#    tau_p                    = 1</span>
+<span class="c1">#    ref_p                    = %f</span>
+<span class="c1">#    pcoupltype               = isotropic</span>
+<span class="c1">#    compressibility          = 0.000045</span>
+<span class="c1">#    ; Bond parameters</span>
+<span class="c1">#    gen_vel                  = no</span>
+<span class="c1">#    gen_temp                 = %f</span>
+<span class="c1">#    constraint_algorithm     = lincs    ; holonomic constraints</span>
+<span class="c1">#    constraints              = h-bonds  ; bonds involving H are constrained</span>
+<span class="c1">#    lincs_iter               = 1        ; accuracy of LINCS</span>
+<span class="c1">#    lincs_order              = 4        ; also related to accoutput</span>
+<span class="c1">#    continuation             = yes</span>
+<span class="c1">#    morse                    = no</span>
+<span class="c1">#    implicit_solvent         = no</span>
+<span class="c1">#    &quot;&quot;&quot; % ( params[&#39;timestep&#39;],</span>
+<span class="c1">#    params[&#39;total_steps&#39;],</span>
+<span class="c1">#    params[&#39;log_freq&#39;],</span>
+<span class="c1">#    params[&#39;xtc_freq&#39;],</span>
+<span class="c1">#    params[&#39;thermostat&#39;],</span>
+<span class="c1">#    params[&#39;temperature&#39;],</span>
+<span class="c1">#    params[&#39;barostat&#39;],</span>
+<span class="c1">#    params[&#39;pressure&#39;],</span>
+<span class="c1">#    params[&#39;temperature&#39;] )</span>
+<span class="c1">#</span>
+<span class="c1">#    return txt</span>
+<span class="c1">#</span>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/Logo_Web.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">AdaptiveMasterMSM 0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">adaptivemastermsm.launcher.launcher_lib</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, David de Sancho and Ion Mitxelena.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+  </body>
+</html>

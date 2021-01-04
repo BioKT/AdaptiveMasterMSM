@@ -1,0 +1,320 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>adaptivemastermsm.analyzer package &#8212; AdaptiveMasterMSM 0.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="License and Citing AdaptiveMasterMSM" href="License.html" />
+    <link rel="prev" title="adaptivemastermsm.launcher package" href="adaptivemastermsm.launcher.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="License.html" title="License and Citing AdaptiveMasterMSM"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="adaptivemastermsm.launcher.html" title="adaptivemastermsm.launcher package"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">AdaptiveMasterMSM 0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="documentation.html" accesskey="U">Modules</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">adaptivemastermsm.analyzer package</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="adaptivemastermsm-analyzer-package">
+<h1>adaptivemastermsm.analyzer package<a class="headerlink" href="#adaptivemastermsm-analyzer-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-adaptivemastermsm.analyzer.analyzer">
+<span id="adaptivemastermsm-analyzer-analyzer-module"></span><h2>adaptivemastermsm.analyzer.analyzer module<a class="headerlink" href="#module-adaptivemastermsm.analyzer.analyzer" title="Permalink to this headline">¶</a></h2>
+<p>This file is part of the AdaptiveMasterMSM package.</p>
+<dl class="py class">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer">
+<em class="property">class </em><code class="sig-prename descclassname">adaptivemastermsm.analyzer.analyzer.</code><code class="sig-name descname">Analyzer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">trajfiles</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Build the MSM and resample to prepare next round</p>
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.build_msm">
+<code class="sig-name descname">build_msm</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">n_epoch</span></em>, <em class="sig-param"><span class="n">n_runs</span></em>, <em class="sig-param"><span class="n">lagt</span></em>, <em class="sig-param"><span class="n">mcs</span><span class="o">=</span><span class="default_value">85</span></em>, <em class="sig-param"><span class="n">ms</span><span class="o">=</span><span class="default_value">75</span></em>, <em class="sig-param"><span class="n">dt</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">sym</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">n_clusters</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">rate_mat</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">gro</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">method</span><span class="o">=</span><span class="default_value">'hdbscan'</span></em>, <em class="sig-param"><span class="n">offset</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.build_msm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.build_msm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build the MSM for the next round.
+Return macrostates obtained from the MSM.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_runs</strong> (<em>int</em>) – Number of parallel simulations</p></li>
+<li><p><strong>lagt</strong> (<em>float</em>) – Lag time (in nanosec)</p></li>
+<li><p><strong>mcs</strong> (<em>int</em>) – min_cluster_size for HDBSCAN</p></li>
+<li><p><strong>ms</strong> (<em>int</em>) – min_samples for HDBSCAN</p></li>
+<li><p><strong>dt</strong> (<em>float</em>) – Time step (in ns) between subsequent frames in trajectory</p></li>
+<li><p><strong>sym</strong> (<em>bool</em>) – Impose symmetry on Count matrix, i.e. impose detailed balance</p></li>
+<li><p><strong>n_clusters</strong> (<em>int</em>) – Number of clusters or macrostates</p></li>
+<li><p><strong>rate_mat</strong> (<em>bool</em>) – Build the MSM from K matrix, otherwise T is used</p></li>
+<li><p><strong>gro</strong> (<em>str</em>) – Path to .gro or .pdb file</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – Discretization method (hdbscan, rama, ramagrid)</p></li>
+<li><p><strong>offset</strong> (<em>int</em>) – Number of input trajectories. If None offset=1</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.counts">
+<code class="sig-name descname">counts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.counts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resampling probability inversely proportional to
+number of visits.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.flux_inbalance">
+<code class="sig-name descname">flux_inbalance</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.flux_inbalance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.flux_inbalance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resampling probality proportional to flux imbalance.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_all">
+<code class="sig-name descname">gen_clusters_all</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gro</span></em>, <em class="sig-param"><span class="n">method</span></em>, <em class="sig-param"><span class="n">mcs</span></em>, <em class="sig-param"><span class="n">ms</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.gen_clusters_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cluster all trajectories at once by ‘hdbscan’ or ‘contacts’ based methods</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_contacts_all">
+<code class="sig-name descname">gen_clusters_contacts_all</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gro</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.gen_clusters_contacts_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_contacts_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cluster trajectories into microstates by using pairwise contacts
+Return labels (int array) containing trajectory by microstates</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_mueller">
+<code class="sig-name descname">gen_clusters_mueller</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">i</span></em>, <em class="sig-param"><span class="n">mcs</span></em>, <em class="sig-param"><span class="n">ms</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.gen_clusters_mueller"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_mueller" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cluster trajectories into microstates by using HDBSCAN.
+Return labels (int array) containing trajectory by microstates</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_rama">
+<code class="sig-name descname">gen_clusters_rama</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">i</span></em>, <em class="sig-param"><span class="n">gro</span></em>, <em class="sig-param"><span class="n">method</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.gen_clusters_rama"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_rama" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cluster trajectories into microstates by using Ramachandran angle regions
+Return labels (int array) containing trajectory by microstates</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_rama_all">
+<code class="sig-name descname">gen_clusters_rama_all</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gro</span></em>, <em class="sig-param"><span class="n">mcs</span></em>, <em class="sig-param"><span class="n">ms</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.gen_clusters_rama_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_rama_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cluster trajectories into microstates by using Ramachandran angle regions
+Return labels (int array) containing trajectory by microstates</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.gen_dict_state">
+<code class="sig-name descname">gen_dict_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">s</span></em>, <em class="sig-param"><span class="n">state_kv</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.gen_dict_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_dict_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates dictionary entry for state s</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>s</strong> (<em>str</em><em>, </em><em>int</em>) – The key for the state</p></li>
+<li><p><strong>state_kv</strong> (<em>dict</em>) – Dictionary containing all trajectories and corresponding frames</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.gen_input">
+<code class="sig-name descname">gen_input</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">states</span></em>, <em class="sig-param"><span class="n">tprs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.gen_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_input" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inpcrd</strong> (<em>str</em>) – File containing coordinates for next round</p></li>
+<li><p><strong>states</strong> (<em>np array</em>) – Scoring of each macrostate</p></li>
+<li><p><strong>n_msm_runs</strong> (<em>int array</em>) – List of labels from which generate new inputs</p></li>
+<li><p><strong>n_msm_runs_aux</strong> (<em>int array</em>) – Number of new runs for each label</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.gen_msm">
+<code class="sig-name descname">gen_msm</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tr_instance</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.gen_msm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_msm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do MSM and build macrostates</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tr_instance</strong> (<em>bool</em>) – True if an instance of trajectory exists</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.non_detbal">
+<code class="sig-name descname">non_detbal</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.non_detbal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.non_detbal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resampling probability proportional to lack of detailed
+balance for each MSM state.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.populs">
+<code class="sig-name descname">populs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.populs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.populs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resampling probability inversely proportional to
+state populations. JCTC 2019 Betz and Dror.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.analyzer.analyzer.Analyzer.resampler">
+<code class="sig-name descname">resampler</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tprs</span></em>, <em class="sig-param"><span class="n">scoring</span><span class="o">=</span><span class="default_value">'populations'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer.html#Analyzer.resampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer.Analyzer.resampler" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tprs</strong> (<em>list</em>) – tpr files from Launcher to generate new gro files</p></li>
+<li><p><strong>scoring</strong> (<em>str</em>) – Scoring function to determine how to resample</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-adaptivemastermsm.analyzer.analyzer_lib">
+<span id="adaptivemastermsm-analyzer-analyzer-lib-module"></span><h2>adaptivemastermsm.analyzer.analyzer_lib module<a class="headerlink" href="#module-adaptivemastermsm.analyzer.analyzer_lib" title="Permalink to this headline">¶</a></h2>
+<p>This file is part of the AdaptiveMasterMSM package.</p>
+<dl class="py function">
+<dt id="adaptivemastermsm.analyzer.analyzer_lib.gen_input_weights">
+<code class="sig-prename descclassname">adaptivemastermsm.analyzer.analyzer_lib.</code><code class="sig-name descname">gen_input_weights</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">n_msm_runs</span></em>, <em class="sig-param"><span class="n">labels_all</span></em>, <em class="sig-param"><span class="n">trajs</span></em>, <em class="sig-param"><span class="n">tprs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer_lib.html#gen_input_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer_lib.gen_input_weights" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_msm_runs</strong> (<em>int array</em>) – Number of runs for each macrostate</p></li>
+<li><p><strong>labels_all</strong> (<em>list</em>) – List of all discretized trajectories</p></li>
+<li><p><strong>trajs</strong> (<em>List</em>) – List of instances of TimeSeries for all input trajectories</p></li>
+<li><p><strong>tprs</strong> (<em>List</em>) – tpr files corresponding to ‘trajs’ trajectories</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="adaptivemastermsm.analyzer.analyzer_lib.list_duplicates_of">
+<code class="sig-prename descclassname">adaptivemastermsm.analyzer.analyzer_lib.</code><code class="sig-name descname">list_duplicates_of</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">seq</span></em>, <em class="sig-param"><span class="n">item</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer_lib.html#list_duplicates_of"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer_lib.list_duplicates_of" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="adaptivemastermsm.analyzer.analyzer_lib.map_inputs">
+<code class="sig-prename descclassname">adaptivemastermsm.analyzer.analyzer_lib.</code><code class="sig-name descname">map_inputs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">traj</span></em>, <em class="sig-param"><span class="n">label</span></em>, <em class="sig-param"><span class="n">frame</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">tpr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/analyzer/analyzer_lib.html#map_inputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.analyzer.analyzer_lib.map_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>traj</strong> (<em>object</em>) – mdtraj Trajectory object (see in TimeSeries of MasterMSM/traj.py)</p></li>
+<li><p><strong>label</strong> (<em>int</em>) – Label identifying the initial state of the new input</p></li>
+<li><p><strong>frame</strong> (<em>int</em>) – Frame corresponding to the initial state for the new input</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-adaptivemastermsm.analyzer">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-adaptivemastermsm.analyzer" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/Logo_Web.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">adaptivemastermsm.analyzer package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-adaptivemastermsm.analyzer.analyzer">adaptivemastermsm.analyzer.analyzer module</a></li>
+<li><a class="reference internal" href="#module-adaptivemastermsm.analyzer.analyzer_lib">adaptivemastermsm.analyzer.analyzer_lib module</a></li>
+<li><a class="reference internal" href="#module-adaptivemastermsm.analyzer">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="adaptivemastermsm.launcher.html"
+                        title="previous chapter">adaptivemastermsm.launcher package</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="License.html"
+                        title="next chapter">License and Citing AdaptiveMasterMSM</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/adaptivemastermsm.analyzer.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="License.html" title="License and Citing AdaptiveMasterMSM"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="adaptivemastermsm.launcher.html" title="adaptivemastermsm.launcher package"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">AdaptiveMasterMSM 0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="documentation.html" >Modules</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">adaptivemastermsm.analyzer package</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, David de Sancho and Ion Mitxelena.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+  </body>
+</html>

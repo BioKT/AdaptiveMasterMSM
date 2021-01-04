@@ -1,0 +1,227 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>adaptivemastermsm.launcher.launcher &#8212; AdaptiveMasterMSM 0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">AdaptiveMasterMSM 0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">adaptivemastermsm.launcher.launcher</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for adaptivemastermsm.launcher.launcher</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file is part of the AdaptiveMasterMSM package.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">shlex</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="k">as</span> <span class="nn">mp</span>
+
+<span class="c1"># AdaptiveMasterMSM</span>
+<span class="kn">from</span> <span class="nn">adaptivemastermsm.system</span> <span class="kn">import</span> <span class="n">system</span>
+<span class="kn">from</span> <span class="nn">..launcher</span> <span class="kn">import</span> <span class="n">launcher_lib</span>
+
+<div class="viewcode-block" id="Launcher"><a class="viewcode-back" href="../../../adaptivemastermsm.launcher.html#adaptivemastermsm.launcher.launcher.Launcher">[docs]</a><span class="k">class</span> <span class="nc">Launcher</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Call GROMACS and process output to pass it to class analyzer</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">simsys</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read input from system, run MD, and process output</span>
+<span class="sd">        for the class analyzer</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        simsys : object</span>
+<span class="sd">            An instance of the System class.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Launcher</span><span class="o">.</span><span class="n">system</span> <span class="o">=</span> <span class="n">simsys</span>
+
+<div class="viewcode-block" id="Launcher.gen_tpr"><a class="viewcode-back" href="../../../adaptivemastermsm.launcher.html#adaptivemastermsm.launcher.launcher.Launcher.gen_tpr">[docs]</a>    <span class="k">def</span> <span class="nf">gen_tpr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mdp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tpr</span><span class="o">=</span><span class="s1">&#39;data/out.tpr&#39;</span><span class="p">):</span><span class="c1">#, sim_time=None): #, i, chk=None):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function for generating tpr files</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mdp : str</span>
+<span class="sd">            The parameter input file</span>
+<span class="sd">        tpr : str</span>
+<span class="sd">            The Gromacs run input file</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#launcher_lib.checkfile(tpr)</span>
+        <span class="c1">#if chk is not None:</span>
+        <span class="c1">#    cmd = &quot;gmx grompp -c %s -p %s -f %s -t %s -o %s -maxwarn 1&quot;\</span>
+        <span class="c1">#        %(gro, top, mdp, chk, tpr)</span>
+        <span class="c1">#else:</span>
+        <span class="n">filemdp</span> <span class="o">=</span> <span class="n">mdp</span>
+        <span class="n">emstep</span> <span class="o">=</span> <span class="mf">0.002</span>
+        <span class="n">nsteps</span> <span class="o">=</span> <span class="mi">150000</span><span class="c1">#50000</span>
+        <span class="k">if</span> <span class="n">mdp</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;min&quot;</span><span class="p">,</span><span class="s2">&quot;nvt&quot;</span><span class="p">,</span><span class="s2">&quot;npt&quot;</span><span class="p">,</span><span class="s2">&quot;prod&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">mdp</span> <span class="ow">is</span> <span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="n">txt</span> <span class="o">=</span> <span class="n">launcher_lib</span><span class="o">.</span><span class="n">write_mdp_min</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">mdp</span> <span class="ow">is</span> <span class="s2">&quot;nvt&quot;</span><span class="p">:</span> <span class="n">txt</span> <span class="o">=</span> <span class="n">launcher_lib</span><span class="o">.</span><span class="n">write_mdp_nvt</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">mdp</span> <span class="ow">is</span> <span class="s2">&quot;npt&quot;</span><span class="p">:</span> <span class="n">txt</span> <span class="o">=</span> <span class="n">launcher_lib</span><span class="o">.</span><span class="n">write_mdp_npt</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">mdp</span> <span class="ow">is</span> <span class="s2">&quot;prod&quot;</span><span class="p">:</span> <span class="n">txt</span> <span class="o">=</span> <span class="n">launcher_lib</span><span class="o">.</span><span class="n">write_mdp_prod</span><span class="p">(</span><span class="n">emstep</span><span class="o">=</span><span class="n">emstep</span><span class="p">,</span> <span class="n">nsteps</span><span class="o">=</span><span class="n">nsteps</span><span class="p">)</span>
+            <span class="n">filemdp</span> <span class="o">=</span> <span class="s2">&quot;data/mdp/</span><span class="si">%s</span><span class="s2">.mdp&quot;</span> <span class="o">%</span> <span class="n">mdp</span>
+            <span class="n">launcher_lib</span><span class="o">.</span><span class="n">checkfile</span><span class="p">(</span><span class="n">filemdp</span><span class="p">)</span>
+            <span class="n">inp</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filemdp</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+            <span class="n">inp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span>
+            <span class="n">inp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;gmx grompp -c </span><span class="si">%s</span><span class="s2"> -p </span><span class="si">%s</span><span class="s2"> -f </span><span class="si">%s</span><span class="s2"> -o </span><span class="si">%s</span><span class="s2"> -r </span><span class="si">%s</span><span class="s2">&quot;</span>\
+                <span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">gro</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">top</span><span class="p">,</span> <span class="n">filemdp</span><span class="p">,</span> <span class="n">tpr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">gro</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tpr</span> <span class="o">=</span> <span class="n">tpr</span></div>
+        <span class="c1">#sim_time += emstep * float(nsteps)</span>
+
+<div class="viewcode-block" id="Launcher.gmx_run"><a class="viewcode-back" href="../../../adaptivemastermsm.launcher.html#adaptivemastermsm.launcher.launcher.Launcher.gmx_run">[docs]</a>    <span class="k">def</span> <span class="nf">gmx_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s1">&#39;data/out&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs MD simulations using gmx mdrun</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tpr : str</span>
+<span class="sd">            Gromacs run input file</span>
+<span class="sd">        out : str</span>
+<span class="sd">            Root filename for output</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;gmx mdrun -v -s </span><span class="si">%s</span><span class="s2"> -deffnm </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tpr</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">cmd</span><span class="p">),</span> \
+                <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> \
+                <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+        <span class="n">output</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="n">error</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out</span> <span class="o">=</span> <span class="n">out</span>
+        <span class="c1"># after the run we replace the gro in the system for the output gro file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">gro</span> <span class="o">=</span>  <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">.gro&quot;</span><span class="o">%</span><span class="n">out</span></div>
+
+<div class="viewcode-block" id="Launcher.mp_run"><a class="viewcode-back" href="../../../adaptivemastermsm.launcher.html#adaptivemastermsm.launcher.launcher.Launcher.mp_run">[docs]</a>    <span class="k">def</span> <span class="nf">mp_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tprs</span><span class="p">,</span> <span class="n">outs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Driver for gmx_worker</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># define multiprocessing options</span>
+        <span class="n">nproc</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tprs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">nproc</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot; Please reduce number of parallel runs&quot;</span><span class="p">)</span>
+        <span class="c1">#self.nt = nproc/len(tprs)</span>
+
+        <span class="n">pool</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">nproc</span><span class="p">)</span>
+        <span class="c1"># generate multiprocessing input</span>
+        <span class="n">mpinput</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">tpr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tprs</span><span class="p">):</span>
+            <span class="n">mpinput</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">tpr</span><span class="p">,</span> <span class="n">outs</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
+        <span class="c1">#mpinput = [[tpr, out] for tpr in tprs for out in outs]</span>
+        <span class="c1"># run counting using multiprocessing</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gmx_worker</span><span class="p">,</span> <span class="n">mpinput</span><span class="p">)</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Launcher.gmx_worker"><a class="viewcode-back" href="../../../adaptivemastermsm.launcher.html#adaptivemastermsm.launcher.launcher.Launcher.gmx_worker">[docs]</a>    <span class="k">def</span> <span class="nf">gmx_worker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; mp worker for running Gromacs jobs</span>
+
+<span class="sd">        --&gt;Shall we use &#39;multi&#39; flag from Gromacs?</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : list</span>
+<span class="sd">            List containing input for each mp worker. Includes:</span>
+<span class="sd">            path to tpr file</span>
+<span class="sd">            path to inp/out file</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#print(x)</span>
+        <span class="n">tpr</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># run simulation</span>
+        <span class="c1">#if self.nt &gt; 1:</span>
+        <span class="c1">#cmd = &quot;gmx mdrun -nt %g -v -s %s -deffnm %s&quot;%(self.nt, tpr, out)</span>
+        <span class="c1">#else:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;gmx mdrun -nt 1 -v -s </span><span class="si">%s</span><span class="s2"> -deffnm </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">tpr</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">cmd</span><span class="p">),</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span></div></div>
+        <span class="c1">#return (out, err)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/Logo_Web.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">AdaptiveMasterMSM 0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">adaptivemastermsm.launcher.launcher</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, David de Sancho and Ion Mitxelena.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+  </body>
+</html>

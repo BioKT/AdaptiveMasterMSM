@@ -1,0 +1,268 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>adaptivemastermsm.controller &#8212; AdaptiveMasterMSM 0.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">AdaptiveMasterMSM 0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">adaptivemastermsm.controller</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for adaptivemastermsm.controller</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file is part of the AdaptiveMasterMSM package.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Tools</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="c1"># Maths</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="c1"># Plotting</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="c1"># Multiprocessing</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="k">as</span> <span class="nn">mp</span>
+<span class="c1"># AdaptiveMasterMSM</span>
+<span class="kn">from</span> <span class="nn">adaptivemastermsm</span> <span class="kn">import</span> <span class="n">controller_lib</span>
+<span class="kn">from</span> <span class="nn">adaptivemastermsm.system</span> <span class="kn">import</span> <span class="n">system</span>
+<span class="kn">from</span> <span class="nn">adaptivemastermsm.launcher</span> <span class="kn">import</span> <span class="n">launcher</span>
+<span class="kn">from</span> <span class="nn">adaptivemastermsm.launcher</span> <span class="kn">import</span> <span class="n">launcher_lib</span>
+<span class="kn">from</span> <span class="nn">adaptivemastermsm.analyzer</span> <span class="kn">import</span> <span class="n">analyzer</span>
+
+<div class="viewcode-block" id="Controller"><a class="viewcode-back" href="../../adaptivemastermsm.controller.html#adaptivemastermsm.controller.Controller">[docs]</a><span class="k">class</span> <span class="nc">Controller</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Driver of the adaptive sampling algorithm</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdb</span><span class="p">,</span> <span class="n">forcefield</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">water</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>\
+                <span class="n">topology</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">constraints</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trajfiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tprs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iteratively, create a GROMACS file, launch, and analyze.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pdb : str</span>
+<span class="sd">            Path to the PDB or GRO file to start setup</span>
+<span class="sd">        forcefield : str</span>
+<span class="sd">            Name of force field in Gromacs format (e.g. amber96)</span>
+<span class="sd">        water : str</span>
+<span class="sd">            Water model for GROMACS (e.g. tip3p)</span>
+<span class="sd">        topology : str</span>
+<span class="sd">            Path to topology TOP file</span>
+<span class="sd">        constraints : str</span>
+<span class="sd">            Parameter for the minimization MDP file (e.g. h-bonds)</span>
+<span class="sd">        trajfiles : list</span>
+<span class="sd">            Path(s) to trajectory file(s)</span>
+<span class="sd">        tprs : list</span>
+<span class="sd">            Path(s) to tpr file(s) corresponding to trajfiles</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Define the system</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gro_initial</span> <span class="o">=</span> <span class="n">pdb</span>
+        <span class="n">Controller</span><span class="o">.</span><span class="n">system</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">System</span><span class="p">(</span><span class="n">pdb</span><span class="p">,</span> <span class="n">forcefield</span><span class="p">,</span> <span class="n">water</span><span class="p">,</span>\
+                            <span class="n">topology</span><span class="o">=</span><span class="n">topology</span><span class="p">,</span> <span class="n">constraints</span><span class="o">=</span><span class="n">constraints</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">top</span> <span class="o">=</span> <span class="n">topology</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sys_prepare</span><span class="p">(</span><span class="n">pdb</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">trajfiles</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">all_sys_equilibration</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trajfiles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.xtc&#39;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">npt</span><span class="o">.</span><span class="n">out</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tprs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">npt</span><span class="o">.</span><span class="n">tpr</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trajfiles</span> <span class="o">=</span> <span class="n">trajfiles</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tprs</span> <span class="o">=</span> <span class="n">tprs</span>
+
+<div class="viewcode-block" id="Controller.sys_prepare"><a class="viewcode-back" href="../../adaptivemastermsm.controller.html#adaptivemastermsm.controller.Controller.sys_prepare">[docs]</a>    <span class="k">def</span> <span class="nf">sys_prepare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gro</span><span class="p">):</span>
+
+        <span class="c1"># Generate topology file</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">top</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">top</span> <span class="o">=</span> <span class="s1">&#39;topol.top&#39;</span>
+        <span class="k">if</span> <span class="s2">&quot;.gro&quot;</span> <span class="ow">in</span> <span class="n">gro</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">gen_top</span><span class="p">(</span><span class="n">gro</span><span class="o">=</span><span class="n">gro</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">gen_top</span><span class="p">()</span>
+        <span class="c1"># Build box</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">build_box</span><span class="p">()</span>
+        <span class="c1"># Solvate the system</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">solvate</span><span class="p">(</span><span class="n">top</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="p">)</span>
+        <span class="c1"># Add ions</span>
+        <span class="c1">#if self.run[&#39;Cl&#39;]&gt;0 or self.run[&#39;Na&#39;]&gt;0:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">ionize</span><span class="p">(</span><span class="n">top</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Controller.sys_equilibrate"><a class="viewcode-back" href="../../adaptivemastermsm.controller.html#adaptivemastermsm.controller.Controller.sys_equilibrate">[docs]</a>    <span class="k">def</span> <span class="nf">sys_equilibrate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="s1">&#39;mdp&#39;</span><span class="p">:</span>
+            <span class="c1"># Relax the system</span>
+            <span class="k">if</span> <span class="n">fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">fn</span> <span class="o">=</span> <span class="s1">&#39;min&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">gen_tpr</span><span class="p">(</span><span class="n">mdp</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span> <span class="n">tpr</span><span class="o">=</span><span class="s1">&#39;data/minim.tpr&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">gmx_run</span><span class="p">(</span><span class="n">out</span><span class="o">=</span><span class="s1">&#39;data/minim&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">step</span> <span class="ow">is</span> <span class="s1">&#39;nvt&#39;</span><span class="p">:</span>
+            <span class="c1"># Obtain NVT ensemble</span>
+            <span class="k">if</span> <span class="n">fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">fn</span> <span class="o">=</span> <span class="s1">&#39;nvt&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nvt</span><span class="o">.</span><span class="n">gen_tpr</span><span class="p">(</span><span class="n">mdp</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span> <span class="n">tpr</span><span class="o">=</span><span class="s1">&#39;data/posre.tpr&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nvt</span><span class="o">.</span><span class="n">gmx_run</span><span class="p">(</span><span class="n">out</span><span class="o">=</span><span class="s1">&#39;data/posre&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">step</span> <span class="ow">is</span> <span class="s1">&#39;npt&#39;</span><span class="p">:</span>
+            <span class="c1"># Obtain NPT ensemble</span>
+            <span class="k">if</span> <span class="n">fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">fn</span> <span class="o">=</span> <span class="s1">&#39;npt&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">npt</span><span class="o">.</span><span class="n">gen_tpr</span><span class="p">(</span><span class="n">mdp</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span> <span class="n">tpr</span><span class="o">=</span><span class="s1">&#39;data/npt.tpr&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">npt</span><span class="o">.</span><span class="n">gmx_run</span><span class="p">(</span><span class="n">out</span><span class="o">=</span><span class="s1">&#39;data/npt&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Controller.all_sys_equilibration"><a class="viewcode-back" href="../../adaptivemastermsm.controller.html#adaptivemastermsm.controller.Controller.all_sys_equilibration">[docs]</a>    <span class="k">def</span> <span class="nf">all_sys_equilibration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">        Get at one time the whole thermodynamic ensemble</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="n">launcher</span><span class="o">.</span><span class="n">Launcher</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sys_equilibrate</span><span class="p">(</span><span class="s1">&#39;mdp&#39;</span><span class="p">)</span>
+        <span class="n">min_system</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">system</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nvt</span> <span class="o">=</span> <span class="n">launcher</span><span class="o">.</span><span class="n">Launcher</span><span class="p">(</span><span class="n">min_system</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sys_equilibrate</span><span class="p">(</span><span class="s1">&#39;nvt&#39;</span><span class="p">)</span>
+        <span class="n">nvt_system</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nvt</span><span class="o">.</span><span class="n">system</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">npt</span> <span class="o">=</span> <span class="n">launcher</span><span class="o">.</span><span class="n">Launcher</span><span class="p">(</span><span class="n">nvt_system</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sys_equilibrate</span><span class="p">(</span><span class="s1">&#39;npt&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Controller.adaptive_sampling"><a class="viewcode-back" href="../../adaptivemastermsm.controller.html#adaptivemastermsm.controller.Controller.adaptive_sampling">[docs]</a>    <span class="k">def</span> <span class="nf">adaptive_sampling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_runs</span><span class="p">,</span> <span class="n">lagt</span><span class="p">,</span> <span class="n">mcs</span><span class="o">=</span><span class="mi">85</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">sym</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rate_mat</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>\
+                            <span class="n">scoring</span><span class="o">=</span><span class="s1">&#39;populations&#39;</span><span class="p">,</span> <span class="n">n_epochs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">max_time</span><span class="o">=</span><span class="mf">100000.0</span><span class="p">,</span>\
+                            <span class="n">method</span><span class="o">=</span><span class="s1">&#39;hdbscan&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Implementation of the Adaptive Sampling algorithm</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n_runs : int</span>
+<span class="sd">            Total number of parallel runs</span>
+<span class="sd">        lagt : float</span>
+<span class="sd">            Lag time (in nanosec)</span>
+<span class="sd">        mcs : int</span>
+<span class="sd">            min_cluster_size for HDBSCAN</span>
+<span class="sd">        ms : int</span>
+<span class="sd">            min_samples for HDBSCAN</span>
+<span class="sd">        rate_mat : bool</span>
+<span class="sd">            Compute K matrix, otherwise T will be calculated</span>
+<span class="sd">        scoring : str</span>
+<span class="sd">            Scoring function to use (str): count, popul</span>
+<span class="sd">        n_epochs : int</span>
+<span class="sd">            Number of outer loops in AS algorithm</span>
+<span class="sd">        max_time : int</span>
+<span class="sd">            Maximum simulation time in ps</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Set options from &#39;equilibration&#39; calculations</span>
+        <span class="n">forcefield</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">ff</span>
+        <span class="n">water</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">wat</span>
+        <span class="n">constraints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">cons</span>
+
+        <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">sim_time</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">tprs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tprs</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># ANALYZER #</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">anal</span> <span class="o">=</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">Analyzer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trajfiles</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="n">offset</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trajfiles</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">anal</span><span class="o">.</span><span class="n">build_msm</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n_runs</span><span class="p">,</span> <span class="n">lagt</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> \
+                <span class="n">mcs</span><span class="o">=</span><span class="n">mcs</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="n">ms</span><span class="p">,</span> <span class="n">sym</span><span class="o">=</span><span class="n">sym</span><span class="p">,</span> <span class="n">gro</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gro_initial</span><span class="p">,</span> <span class="n">rate_mat</span><span class="o">=</span><span class="n">rate_mat</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">)</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anal</span><span class="o">.</span><span class="n">resampler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tprs</span><span class="p">,</span> <span class="n">scoring</span><span class="o">=</span><span class="n">scoring</span><span class="p">)</span>
+            
+            <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="n">n_epochs</span> <span class="ow">or</span> <span class="n">sim_time</span> <span class="o">&gt;</span> <span class="n">max_time</span><span class="p">:</span>
+<span class="c1">#                # Call SuperMSM to converge last MSM</span>
+                <span class="k">break</span>
+
+            <span class="c1"># PRODUCTION #</span>
+            <span class="n">tprs</span><span class="p">,</span> <span class="n">outs</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">gro</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">system</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">System</span><span class="p">(</span><span class="n">gro</span><span class="p">,</span> <span class="n">forcefield</span><span class="p">,</span> <span class="n">water</span><span class="p">,</span>\
+                            <span class="n">constraints</span><span class="o">=</span><span class="n">constraints</span><span class="p">)</span><span class="c1">#topology=self.top</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sys_prepare</span><span class="p">(</span><span class="n">gro</span><span class="p">)</span>
+                <span class="c1"># Set up the simulation box and thermodynamic ensemble</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">all_sys_equilibration</span><span class="p">()</span>
+                <span class="n">tpr</span><span class="p">,</span> <span class="n">out</span> <span class="o">=</span> <span class="s1">&#39;data/tpr/</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">.tpr&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="s1">&#39;data/out/</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">launcher_lib</span><span class="o">.</span><span class="n">checkfile</span><span class="p">(</span><span class="n">tpr</span><span class="p">)</span>
+                <span class="n">launcher_lib</span><span class="o">.</span><span class="n">checkfile</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">npt</span><span class="o">.</span><span class="n">gen_tpr</span><span class="p">(</span><span class="n">mdp</span><span class="o">=</span><span class="s1">&#39;prod&#39;</span><span class="p">,</span> <span class="n">tpr</span><span class="o">=</span><span class="n">tpr</span><span class="p">)</span><span class="c1">#, sim_time=sim_time)</span>
+                <span class="n">tprs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tpr</span><span class="p">)</span>
+                <span class="n">outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">trajfiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.xtc&#39;</span><span class="o">%</span><span class="n">out</span><span class="p">)</span>
+                <span class="c1"># CLEAN not interesting files!</span>
+
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">tprs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tpr</span><span class="p">)</span> <span class="k">for</span> <span class="n">tpr</span> <span class="ow">in</span> <span class="n">tprs</span><span class="p">]</span>
+            <span class="c1"># Run parallel short trajectories</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">npt</span><span class="o">.</span><span class="n">mp_run</span><span class="p">(</span><span class="n">tprs</span><span class="p">,</span> <span class="n">outs</span><span class="p">)</span></div></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/Logo_Web.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">AdaptiveMasterMSM 0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">adaptivemastermsm.controller</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, David de Sancho and Ion Mitxelena.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.3.1.
+    </div>
+  </body>
+</html>
