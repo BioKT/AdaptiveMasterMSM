@@ -1,0 +1,17 @@
+language: python
+python:
+    - 3.7.6
+
+
+travis:
+    - develop
+
+install:
+    - python setup.py install --user
+
+
+script:
+  # avoid running in the checkout directory so nose finds built modules..
+    - rundir=$HOME
+    - cd $rundir
+    - nosetests -v --with-coverage

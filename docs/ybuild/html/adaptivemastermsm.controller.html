@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>adaptivemastermsm.controller module &#8212; AdaptiveMasterMSM 0.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="adaptivemastermsm.system.system module" href="adaptivemastermsm.system.html" />
+    <link rel="prev" title="Modules" href="Documentation.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-adaptivemastermsm.controller">
+<span id="adaptivemastermsm-controller-module"></span><h1>adaptivemastermsm.controller module<a class="headerlink" href="#module-adaptivemastermsm.controller" title="Permalink to this headline">¶</a></h1>
+<p>This file is part of the AdaptiveMasterMSM package.</p>
+<dl class="py class">
+<dt id="adaptivemastermsm.controller.Controller">
+<em class="property">class </em><code class="sig-prename descclassname">adaptivemastermsm.controller.</code><code class="sig-name descname">Controller</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pdb</span></em>, <em class="sig-param"><span class="n">forcefield</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">water</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">topology</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">constraints</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">trajfiles</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tprs</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/controller.html#Controller"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.controller.Controller" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Driver of the adaptive sampling algorithm</p>
+<dl class="py method">
+<dt id="adaptivemastermsm.controller.Controller.adaptive_sampling">
+<code class="sig-name descname">adaptive_sampling</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">n_runs</span></em>, <em class="sig-param"><span class="n">lagt</span></em>, <em class="sig-param"><span class="n">mcs</span><span class="o">=</span><span class="default_value">85</span></em>, <em class="sig-param"><span class="n">ms</span><span class="o">=</span><span class="default_value">75</span></em>, <em class="sig-param"><span class="n">sym</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">rate_mat</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">scoring</span><span class="o">=</span><span class="default_value">'populations'</span></em>, <em class="sig-param"><span class="n">n_epochs</span><span class="o">=</span><span class="default_value">2</span></em>, <em class="sig-param"><span class="n">max_time</span><span class="o">=</span><span class="default_value">100000.0</span></em>, <em class="sig-param"><span class="n">method</span><span class="o">=</span><span class="default_value">'hdbscan'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/controller.html#Controller.adaptive_sampling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.controller.Controller.adaptive_sampling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implementation of the Adaptive Sampling algorithm</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_runs</strong> (<em>int</em>) – Total number of parallel runs</p></li>
+<li><p><strong>lagt</strong> (<em>float</em>) – Lag time (in nanosec)</p></li>
+<li><p><strong>mcs</strong> (<em>int</em>) – min_cluster_size for HDBSCAN</p></li>
+<li><p><strong>ms</strong> (<em>int</em>) – min_samples for HDBSCAN</p></li>
+<li><p><strong>rate_mat</strong> (<em>bool</em>) – Compute K matrix, otherwise T will be calculated</p></li>
+<li><p><strong>scoring</strong> (<em>str</em>) – Scoring function to use (str): count, popul</p></li>
+<li><p><strong>n_epochs</strong> (<em>int</em>) – Number of outer loops in AS algorithm</p></li>
+<li><p><strong>max_time</strong> (<em>int</em>) – Maximum simulation time in ps</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.controller.Controller.all_sys_equilibration">
+<code class="sig-name descname">all_sys_equilibration</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/controller.html#Controller.all_sys_equilibration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.controller.Controller.all_sys_equilibration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get at one time the whole thermodynamic ensemble</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.controller.Controller.sys_equilibrate">
+<code class="sig-name descname">sys_equilibrate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">step</span></em>, <em class="sig-param"><span class="n">fn</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/controller.html#Controller.sys_equilibrate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.controller.Controller.sys_equilibrate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.controller.Controller.sys_prepare">
+<code class="sig-name descname">sys_prepare</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gro</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/controller.html#Controller.sys_prepare"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.controller.Controller.sys_prepare" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-adaptivemastermsm.controller_lib">
+<span id="adaptivemastermsm-controller-lib-module"></span><h1>adaptivemastermsm.controller_lib module<a class="headerlink" href="#module-adaptivemastermsm.controller_lib" title="Permalink to this headline">¶</a></h1>
+<p>This file is part of the AdaptiveMasterMSM package.</p>
+</div>
+<div class="section" id="module-adaptivemastermsm">
+<span id="module-contents"></span><h1>Module contents<a class="headerlink" href="#module-adaptivemastermsm" title="Permalink to this headline">¶</a></h1>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/Logo_Web.png" alt="Logo"/>
+            </a></p>
+<h1 class="logo"><a href="index.html">AdaptiveMasterMSM</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Overview:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Download and Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Documentation.html">Modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="License.html">License and Citing AdaptiveMasterMSM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Contact.html">Contributing and Contact</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="Documentation.html">Modules</a><ul>
+      <li>Previous: <a href="Documentation.html" title="previous chapter">Modules</a></li>
+      <li>Next: <a href="adaptivemastermsm.system.html" title="next chapter">adaptivemastermsm.system.system module</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, David de Sancho and Ion Mitxelena.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/adaptivemastermsm.controller.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

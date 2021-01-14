@@ -1,0 +1,180 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>system package &#8212; AdaptiveMasterMSM 0.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="system-package">
+<h1>system package<a class="headerlink" href="#system-package" title="Permalink to this headline">¶</a></h1>
+<p>##Submodules
+##———-</p>
+<div class="section" id="module-adaptivemastermsm.system.system">
+<span id="adaptivemastermsm-system-system-module"></span><h2>adaptivemastermsm.system.system module<a class="headerlink" href="#module-adaptivemastermsm.system.system" title="Permalink to this headline">¶</a></h2>
+<p>This file is part of the AdaptiveMasterMSM package.</p>
+<dl class="py class">
+<dt id="adaptivemastermsm.system.system.System">
+<em class="property">class </em><code class="sig-prename descclassname">adaptivemastermsm.system.system.</code><code class="sig-name descname">System</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pdb</span></em>, <em class="sig-param"><span class="n">forcefield</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">water</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">topology</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">constraints</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/system/system.html#System"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.system.system.System" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Create files to be able to run GROMACS</p>
+<dl class="py method">
+<dt id="adaptivemastermsm.system.system.System.build_box">
+<code class="sig-name descname">build_box</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">out</span><span class="o">=</span><span class="default_value">'conf_edit.gro'</span></em>, <em class="sig-param"><span class="n">d</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/system/system.html#System.build_box"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.system.system.System.build_box" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates the box for the system</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>d</strong> (<em>float</em>) – Distance between solute and box sides</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.system.system.System.gen_top">
+<code class="sig-name descname">gen_top</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gro</span><span class="o">=</span><span class="default_value">'conf.gro'</span></em>, <em class="sig-param"><span class="n">top</span><span class="o">=</span><span class="default_value">'topol.top'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/system/system.html#System.gen_top"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.system.system.System.gen_top" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates topology from structure file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.system.system.System.ionize">
+<code class="sig-name descname">ionize</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">neutral</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">conc</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">inp</span><span class="o">=</span><span class="default_value">'conf_solv.gro'</span></em>, <em class="sig-param"><span class="n">out</span><span class="o">=</span><span class="default_value">'conf_solv_ions.gro'</span></em>, <em class="sig-param"><span class="n">top</span><span class="o">=</span><span class="default_value">'topol.top'</span></em>, <em class="sig-param"><span class="n">tpr</span><span class="o">=</span><span class="default_value">'ions.tpr'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/system/system.html#System.ionize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.system.system.System.ionize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds ions for electroneutrality and / or target concentration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>neutral</strong> (<em>bool</em>) – Whether we neutralize the simulation box.</p></li>
+<li><p><strong>conc</strong> (<em>float</em>) – The target salt concentration in M.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="adaptivemastermsm.system.system.System.solvate">
+<code class="sig-name descname">solvate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inp</span><span class="o">=</span><span class="default_value">'conf_edit.gro'</span></em>, <em class="sig-param"><span class="n">out</span><span class="o">=</span><span class="default_value">'conf_solv.gro'</span></em>, <em class="sig-param"><span class="n">top</span><span class="o">=</span><span class="default_value">'topol.top'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/system/system.html#System.solvate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.system.system.System.solvate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solvates the system using gmx solvate</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="adaptivemastermsm.system.system.check_gmx">
+<code class="sig-prename descclassname">adaptivemastermsm.system.system.</code><code class="sig-name descname">check_gmx</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/system/system.html#check_gmx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.system.system.check_gmx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks the available Gromacs version.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-adaptivemastermsm.system.system_lib">
+<span id="adaptivemastermsm-system-system-lib-module"></span><h2>adaptivemastermsm.system.system_lib module<a class="headerlink" href="#module-adaptivemastermsm.system.system_lib" title="Permalink to this headline">¶</a></h2>
+<p>This file is part of the AdaptiveMasterMSM package.</p>
+<dl class="py function">
+<dt id="adaptivemastermsm.system.system_lib.write_minimization_mdp">
+<code class="sig-prename descclassname">adaptivemastermsm.system.system_lib.</code><code class="sig-name descname">write_minimization_mdp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">constraints</span><span class="o">=</span><span class="default_value">'None'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/adaptivemastermsm/system/system_lib.html#write_minimization_mdp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#adaptivemastermsm.system.system_lib.write_minimization_mdp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-adaptivemastermsm.system">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-adaptivemastermsm.system" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/Logo_Web.png" alt="Logo"/>
+            </a></p>
+<h1 class="logo"><a href="index.html">AdaptiveMasterMSM</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Overview:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Download and Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Documentation.html">Modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="License.html">License and Citing AdaptiveMasterMSM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Contact.html">Contributing and Contact</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, David de Sancho and Ion Mitxelena.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/system.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

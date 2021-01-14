@@ -1,0 +1,278 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>adaptivemastermsm.system.system &#8212; AdaptiveMasterMSM 0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for adaptivemastermsm.system.system</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file is part of the AdaptiveMasterMSM package.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">shlex</span>
+
+<span class="c1"># AdaptiveMasterMSM</span>
+<span class="kn">from</span> <span class="nn">..system</span> <span class="kn">import</span> <span class="n">system_lib</span>
+
+<div class="viewcode-block" id="check_gmx"><a class="viewcode-back" href="../../../adaptivemastermsm.system.html#adaptivemastermsm.system.system.check_gmx">[docs]</a><span class="k">def</span> <span class="nf">check_gmx</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Checks the available Gromacs version.</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="s2">&quot;which gmx&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">output</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="System"><a class="viewcode-back" href="../../../adaptivemastermsm.system.html#adaptivemastermsm.system.system.System">[docs]</a><span class="k">class</span> <span class="nc">System</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create files to be able to run GROMACS</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdb</span><span class="p">,</span> <span class="n">forcefield</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">water</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>\
+                 <span class="n">topology</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">constraints</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pdb : str</span>
+<span class="sd">            Path to the PDB or GRO file to start setup</span>
+<span class="sd">        forcefield : str</span>
+<span class="sd">            Name of force field in Gromacs format (e.g. amber96)</span>
+<span class="sd">        water : str</span>
+<span class="sd">            Water model for GROMACS (e.g. tip3p)</span>
+<span class="sd">        topology : str</span>
+<span class="sd">            Path to topology TOP file</span>
+<span class="sd">        constraints : str</span>
+<span class="sd">            Parameter for the minimization MDP file (e.g. h-bonds)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Read user-defined parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pdb</span> <span class="o">=</span> <span class="n">pdb</span>
+        <span class="k">if</span> <span class="n">forcefield</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ff</span> <span class="o">=</span> <span class="n">forcefield</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wat</span> <span class="o">=</span> <span class="n">water</span>
+        <span class="k">elif</span> <span class="n">topology</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">top</span> <span class="o">=</span> <span class="n">topology</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cons</span> <span class="o">=</span> <span class="n">constraints</span>
+    
+<div class="viewcode-block" id="System.gen_top"><a class="viewcode-back" href="../../../adaptivemastermsm.system.html#adaptivemastermsm.system.system.System.gen_top">[docs]</a>    <span class="k">def</span> <span class="nf">gen_top</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gro</span><span class="o">=</span><span class="s1">&#39;conf.gro&#39;</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="s1">&#39;topol.top&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates topology from structure file.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pdb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pdb</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gro</span> <span class="o">=</span> <span class="n">gro</span>
+        <span class="n">ff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ff</span>
+        <span class="n">wat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">top</span> <span class="o">=</span> <span class="n">top</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;gmx pdb2gmx -f </span><span class="si">%s</span><span class="s2"> -o </span><span class="si">%s</span><span class="s2"> -p </span><span class="si">%s</span><span class="s2"> -ff </span><span class="si">%s</span><span class="s2"> -water </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span>\
+                <span class="p">(</span><span class="n">pdb</span><span class="p">,</span> <span class="n">gro</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">ff</span><span class="p">,</span> <span class="n">wat</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="System.build_box"><a class="viewcode-back" href="../../../adaptivemastermsm.system.html#adaptivemastermsm.system.system.System.build_box">[docs]</a>    <span class="k">def</span> <span class="nf">build_box</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s1">&#39;conf_edit.gro&#39;</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates the box for the system</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        d : float</span>
+<span class="sd">            Distance between solute and box sides        </span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gro</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">gro</span> <span class="o">=</span> <span class="s1">&#39;conf.gro&#39;</span>
+        <span class="n">gro</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gro</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;gmx editconf -f </span><span class="si">%s</span><span class="s1"> -o </span><span class="si">%s</span><span class="s1"> -c -d </span><span class="si">%f</span><span class="s1"> -bt cubic&#39;</span> <span class="o">%</span><span class="p">(</span><span class="n">gro</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gro</span> <span class="o">=</span> <span class="n">out</span> </div>
+
+<div class="viewcode-block" id="System.solvate"><a class="viewcode-back" href="../../../adaptivemastermsm.system.html#adaptivemastermsm.system.system.System.solvate">[docs]</a>    <span class="k">def</span> <span class="nf">solvate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inp</span><span class="o">=</span><span class="s1">&#39;conf_edit.gro&#39;</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s1">&#39;conf_solv.gro&#39;</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="s1">&#39;topol.top&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Solvates the system using gmx solvate</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Choose a water topology file</span>
+        <span class="n">water_dict</span>  <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;tip3p&#39;</span> <span class="p">:</span> <span class="s1">&#39;spc216.gro&#39;</span><span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">wat</span> <span class="ow">in</span> <span class="n">water_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">water_topol</span> <span class="o">=</span> <span class="n">water_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">wat</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Could not find a topology in &#39;w_top_dict&#39; for water: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">wat</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Invalid water model for GROMACS.&quot;</span><span class="p">)</span>
+
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;gmx solvate -cp </span><span class="si">%s</span><span class="s1"> -cs </span><span class="si">%s</span><span class="s1"> -p </span><span class="si">%s</span><span class="s1"> -o </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>\
+                <span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">water_topol</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gro</span> <span class="o">=</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="System.ionize"><a class="viewcode-back" href="../../../adaptivemastermsm.system.html#adaptivemastermsm.system.system.System.ionize">[docs]</a>    <span class="k">def</span> <span class="nf">ionize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">neutral</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">conc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inp</span><span class="o">=</span><span class="s1">&#39;conf_solv.gro&#39;</span><span class="p">,</span>\
+                <span class="n">out</span><span class="o">=</span><span class="s1">&#39;conf_solv_ions.gro&#39;</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="s1">&#39;topol.top&#39;</span><span class="p">,</span> <span class="n">tpr</span><span class="o">=</span><span class="s1">&#39;ions.tpr&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds ions for electroneutrality and / or target concentration.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        neutral : bool</span>
+<span class="sd">            Whether we neutralize the simulation box.</span>
+<span class="sd">        conc : float</span>
+<span class="sd">            The target salt concentration in M.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Format the water string</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">conc</span><span class="p">:</span>
+            <span class="n">ion_str</span> <span class="o">=</span> <span class="s1">&#39;-neutral&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ion_str</span> <span class="o">=</span> <span class="s1">&#39;-conc </span><span class="si">%g</span><span class="s1">&#39;</span><span class="o">%</span><span class="n">conc</span>
+
+        <span class="c1"># Generate the tpr file required for gmx genion</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mdpfile</span> <span class="o">=</span> <span class="n">system_lib</span><span class="o">.</span><span class="n">write_minimization_mdp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cons</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;gmx grompp -f </span><span class="si">%s</span><span class="s2"> -c </span><span class="si">%s</span><span class="s2"> -p </span><span class="si">%s</span><span class="s2"> -o </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mdpfile</span><span class="p">,</span> <span class="n">inp</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">tpr</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">output</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+
+        <span class="c1"># Run genion </span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;gmx genion -s </span><span class="si">%s</span><span class="s2"> -o </span><span class="si">%s</span><span class="s2"> -p </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">tpr</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">ion_str</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">output</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gro</span> <span class="o">=</span> <span class="n">out</span></div></div>
+
+<span class="c1">#    def minimize(self, inp=&#39;conf_solv_ions.gro&#39;, top=&#39;topol.top&#39;, out=&#39;minimization&#39;):</span>
+<span class="c1">#        &quot;&quot;&quot;</span>
+<span class="c1">#        Runs minimization invoking the Launcher class</span>
+<span class="c1">#</span>
+<span class="c1">#        &quot;&quot;&quot;</span>
+<span class="c1">#        self.mdpfile = system_lib.write_minimization_mdp(self.cons)</span>
+<span class="c1">#        cmd = &#39;gmx grompp -f %s -c %s -p %s -o %s&#39;% (self.mdpfile, inp, top, out)</span>
+<span class="c1">#        print(cmd)</span>
+<span class="c1">#        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)</span>
+<span class="c1">#        output, error = p.communicate()</span>
+<span class="c1">#</span>
+<span class="c1">#        cmd = &#39;gmx mdrun -v -s %s.tpr -deffnm %s&#39;%(out, out)</span>
+<span class="c1">#        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)</span>
+<span class="c1">#        output, error = p.communicate()</span>
+<span class="c1">#        self.gro = out + &quot;.gro&quot;</span>
+<span class="c1">#</span>
+<span class="c1">#    def nvt(self, mdp=&#39;nvt.mdp&#39;, gro=&#39;minimization.gro&#39;,\</span>
+<span class="c1">#            top=&#39;topol.top&#39;, tpr=&#39;nvt.tpr&#39;, out=&#39;nvt&#39;):</span>
+<span class="c1">#</span>
+<span class="c1">#        cmd = &#39;gmx grompp -f %s -c %s -r %s -p %s -o %s; gmx mdrun -v -s %s -deffnm %s&#39;\</span>
+<span class="c1">#                % (mdp, gro, gro, top, tpr, tpr, out)</span>
+<span class="c1">#        print(cmd)</span>
+<span class="c1">#        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)</span>
+<span class="c1">#        output, error = p.communicate()</span>
+<span class="c1">#        return output, error</span>
+<span class="c1">#</span>
+<span class="c1">#    def npt(self, mdp=&#39;npt.mdp&#39;, gro=&#39;nvt.gro&#39;, chk=&#39;nvt.cpt&#39;,\</span>
+<span class="c1">#            top=&#39;topol.top&#39;, tpr=&#39;npt.tpr&#39;, out=&#39;npt&#39;):</span>
+<span class="c1">#</span>
+<span class="c1">#        cmd = &#39;gmx grompp -f %s -c %s -r %s -t %s -p %s -o %s; gmx mdrun -v -s %s -deffnm %s&#39;\</span>
+<span class="c1">#                % (mdp, gro, gro, chk, top, tpr, tpr, out)</span>
+<span class="c1">#        print(cmd)</span>
+<span class="c1">#        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)</span>
+<span class="c1">#        output, error = p.communicate()</span>
+<span class="c1">#        return output, error</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/Logo_Web.png" alt="Logo"/>
+            </a></p>
+<h1 class="logo"><a href="../../../index.html">AdaptiveMasterMSM</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Overview:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Installation.html">Download and Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Documentation.html">Modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../License.html">License and How to cite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Contact.html">Contributing and Contact</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, David de Sancho and Ion Mitxelena.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

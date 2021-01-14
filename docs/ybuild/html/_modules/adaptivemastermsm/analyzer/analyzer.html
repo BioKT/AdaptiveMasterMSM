@@ -1,0 +1,613 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>adaptivemastermsm.analyzer.analyzer &#8212; AdaptiveMasterMSM 0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for adaptivemastermsm.analyzer.analyzer</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file is part of the AdaptiveMasterMSM package.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># General</span>
+<span class="kn">import</span> <span class="nn">h5py</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">path</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="c1"># Maths</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="c1"># Plotting</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib.cm</span> <span class="k">as</span> <span class="nn">cm</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">style</span><span class="o">=</span><span class="s2">&quot;ticks&quot;</span><span class="p">,</span> <span class="n">color_codes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">font_scale</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">set_style</span><span class="p">({</span><span class="s2">&quot;xtick.direction&quot;</span><span class="p">:</span> <span class="s2">&quot;in&quot;</span><span class="p">,</span> <span class="s2">&quot;ytick.direction&quot;</span><span class="p">:</span> <span class="s2">&quot;in&quot;</span><span class="p">})</span>
+<span class="c1"># Clustering</span>
+<span class="c1">#from sklearn.preprocessing import StandardScaler</span>
+<span class="kn">import</span> <span class="nn">hdbscan</span>
+<span class="kn">import</span> <span class="nn">mdtraj</span> <span class="k">as</span> <span class="nn">md</span>
+<span class="c1"># AdaptiveMasterMSM</span>
+<span class="kn">from</span> <span class="nn">..analyzer</span> <span class="kn">import</span> <span class="n">analyzer_lib</span>
+<span class="c1"># MasterMSM</span>
+<span class="kn">from</span> <span class="nn">mastermsm.trajectory</span> <span class="kn">import</span> <span class="n">traj</span>
+<span class="kn">from</span> <span class="nn">mastermsm.msm</span> <span class="kn">import</span> <span class="n">msm</span>
+<span class="kn">from</span> <span class="nn">mastermsm.fewsm</span> <span class="kn">import</span> <span class="n">fewsm</span>
+
+<div class="viewcode-block" id="Analyzer"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer">[docs]</a><span class="k">class</span> <span class="nc">Analyzer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the MSM and resample to prepare next round</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trajfiles</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create an updated MSM, resample, and generate new input</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        trajfiles : list</span>
+<span class="sd">            Path(s) to trajectory file(s)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Read parallel trajectories</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">trajfiles</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Trajectory file(s) not valid&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;.xtc&#39;</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s1">&#39;.h5&#39;</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">fr</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fr</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]))</span>
+                <span class="n">fr</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># Next steps better to do from outside:</span>
+        <span class="c1"># Do MSM and get macrostates build_msm(mcs, ms, lagt, rate_mat=True)</span>
+        <span class="c1"># Call resampler(macmsm) and gen_input</span>
+
+<div class="viewcode-block" id="Analyzer.build_msm"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.build_msm">[docs]</a>    <span class="k">def</span> <span class="nf">build_msm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_epoch</span><span class="p">,</span> <span class="n">n_runs</span><span class="p">,</span> <span class="n">lagt</span><span class="p">,</span> <span class="n">mcs</span><span class="o">=</span><span class="mi">85</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sym</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>\
+                    <span class="n">n_clusters</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">rate_mat</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">gro</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;hdbscan&#39;</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build the MSM for the next round.</span>
+<span class="sd">        Return macrostates obtained from the MSM.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n_runs : int</span>
+<span class="sd">            Number of parallel simulations</span>
+<span class="sd">        lagt : float</span>
+<span class="sd">            Lag time (in nanosec)</span>
+<span class="sd">        mcs : int</span>
+<span class="sd">            min_cluster_size for HDBSCAN</span>
+<span class="sd">        ms : int</span>
+<span class="sd">            min_samples for HDBSCAN</span>
+<span class="sd">        dt : float</span>
+<span class="sd">            Time step (in ns) between subsequent frames in trajectory</span>
+<span class="sd">        sym : bool</span>
+<span class="sd">            Impose symmetry on Count matrix, i.e. impose detailed balance</span>
+<span class="sd">        n_clusters : int</span>
+<span class="sd">            Number of clusters or macrostates</span>
+<span class="sd">        rate_mat : bool</span>
+<span class="sd">            Build the MSM from K matrix, otherwise T is used</span>
+<span class="sd">        gro : str</span>
+<span class="sd">            Path to .gro or .pdb file</span>
+<span class="sd">        method : str</span>
+<span class="sd">            Discretization method (hdbscan, rama, ramagrid)</span>
+<span class="sd">        offset : int</span>
+<span class="sd">            Number of input trajectories. If None offset=1</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_epoch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_runs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_clusters</span> <span class="o">=</span> <span class="n">n_epoch</span><span class="p">,</span> <span class="n">n_runs</span><span class="p">,</span> <span class="n">n_clusters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sym</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">lagt</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">sym</span><span class="p">,</span> <span class="n">rate_mat</span><span class="p">,</span> <span class="n">offset</span>
+        <span class="c1">#1- Clustering:</span>
+        <span class="c1"># one &#39;labels&#39; per parallel run, TimeSeries will merge all together</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels_all</span><span class="p">,</span> <span class="n">trs</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">method</span><span class="o">==</span><span class="s1">&#39;hdbscan&#39;</span> <span class="ow">or</span> <span class="n">method</span><span class="o">==</span><span class="s1">&#39;contacts&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">labels_all</span><span class="p">,</span> <span class="n">trs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_clusters_all</span><span class="p">(</span><span class="n">gro</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">mcs</span><span class="p">,</span> <span class="n">ms</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">tr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">trs</span><span class="p">):</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">n_runs</span><span class="p">):</span>
+                    <span class="c1">#data = np.column_stack((tr.mdt.time, [x for x in tr.distraj]))</span>
+                    <span class="n">offset_tba</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tr</span><span class="o">.</span><span class="n">mdt</span><span class="o">.</span><span class="n">time</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">tr</span><span class="o">.</span><span class="n">distraj</span><span class="p">)</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">(([</span><span class="n">tr</span><span class="o">.</span><span class="n">mdt</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="n">x</span><span class="o">+</span><span class="n">offset_tba</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> \
+                                            <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tr</span><span class="o">.</span><span class="n">distraj</span><span class="p">))],</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">tr</span><span class="o">.</span><span class="n">distraj</span><span class="p">]))</span>
+                    <span class="n">i_aux</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_epoch</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n_runs</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span>
+                    <span class="n">h5file</span> <span class="o">=</span> <span class="s2">&quot;data/out/</span><span class="si">%g</span><span class="s2">_</span><span class="si">%g</span><span class="s2">_traj.h5&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_epoch</span><span class="p">,</span> <span class="n">i_aux</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hf</span><span class="p">:</span>
+                        <span class="n">hf</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">&quot;trajectory&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)):</span>
+                <span class="c1">#labels = self.gen_clusters_mueller(i, mcs, ms)</span>
+                <span class="n">labels</span><span class="p">,</span> <span class="n">tr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_clusters_rama</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">gro</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span>
+                <span class="n">trs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tr</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">labels_all</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">n_runs</span><span class="p">)</span> <span class="ow">and</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;ramagrid&#39;</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">tr</span><span class="o">.</span><span class="n">mdt</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">tr</span><span class="o">.</span><span class="n">distraj</span><span class="p">]))</span>
+                    <span class="n">i_aux</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_epoch</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n_runs</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span>
+                    <span class="n">h5file</span> <span class="o">=</span> <span class="s2">&quot;data/out/</span><span class="si">%g</span><span class="s2">_</span><span class="si">%g</span><span class="s2">_traj.h5&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_epoch</span><span class="p">,</span> <span class="n">i_aux</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hf</span><span class="p">:</span>
+                        <span class="n">hf</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">&quot;rama_trajectory&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+                
+        <span class="bp">self</span><span class="o">.</span><span class="n">trajs</span> <span class="o">=</span> <span class="n">trs</span>
+
+        <span class="c1">#2- do MSM:</span>
+        <span class="c1">#self.gen_msm(tr_instance=False)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gen_msm</span><span class="p">(</span><span class="n">tr_instance</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_clusters</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gen_macro_msm</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mMSM</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">MSM</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_clusters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mMSM</span><span class="o">.</span><span class="n">peqK</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mMSM</span><span class="o">.</span><span class="n">peqT</span><span class="p">)</span>
+
+        <span class="c1">#3- Wrap up</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;MSM done&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Analyzer.gen_clusters_all"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_all">[docs]</a>    <span class="k">def</span> <span class="nf">gen_clusters_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gro</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">mcs</span><span class="p">,</span> <span class="n">ms</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cluster all trajectories at once by &#39;hdbscan&#39; or &#39;contacts&#39; based methods</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">method</span><span class="o">==</span><span class="s1">&#39;hdbscan&#39;</span><span class="p">:</span>
+            <span class="n">labels_all</span><span class="p">,</span> <span class="n">trs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_clusters_rama_all</span><span class="p">(</span><span class="n">gro</span><span class="p">,</span> <span class="n">mcs</span><span class="p">,</span> <span class="n">ms</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">labels_all</span><span class="p">,</span> <span class="n">trs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_clusters_contacts_all</span><span class="p">(</span><span class="n">gro</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">labels_all</span><span class="p">,</span> <span class="n">trs</span></div>
+    
+<div class="viewcode-block" id="Analyzer.gen_clusters_contacts_all"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_contacts_all">[docs]</a>    <span class="k">def</span> <span class="nf">gen_clusters_contacts_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gro</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cluster trajectories into microstates by using pairwise contacts</span>
+<span class="sd">        Return labels (int array) containing trajectory by microstates</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">trajs</span> <span class="o">=</span> <span class="n">traj</span><span class="o">.</span><span class="n">MultiTimeSeries</span><span class="p">(</span><span class="n">top</span><span class="o">=</span><span class="n">gro</span><span class="p">,</span> <span class="n">trajs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        
+        <span class="n">trajs</span><span class="o">.</span><span class="n">joint_discretize</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;contacts&#39;</span><span class="p">)</span>
+
+        <span class="n">dists_cum</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">tr</span> <span class="ow">in</span> <span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">:</span>
+            <span class="n">tr</span><span class="o">.</span><span class="n">find_keys</span><span class="p">()</span>
+            <span class="n">tr</span><span class="o">.</span><span class="n">keys</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+            <span class="n">dists</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">compute_contacts</span><span class="p">(</span><span class="n">tr</span><span class="o">.</span><span class="n">mdt</span><span class="p">,</span> <span class="n">contacts</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">periodic</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">dists_cum</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dists</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="n">dists_cum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">dists_cum</span><span class="p">)</span>
+
+        <span class="n">ib</span><span class="p">,</span> <span class="n">ie</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">)):</span>
+            <span class="n">ie</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">distraj</span><span class="p">)</span>
+            <span class="c1">#ax[i].scatter(phi_cum[ib:ie], psi_cum[ib:ie], c=trajs.traj_list[i].distraj, s=1)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">)</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">n_runs</span><span class="p">):</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">dists_cum</span><span class="p">[</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">dists_cum</span><span class="p">[</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span>\
+                                        <span class="n">dists_cum</span><span class="p">[</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">distraj</span><span class="p">))</span>
+                <span class="n">i_aux</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_epoch</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n_runs</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span>
+                <span class="n">h5file</span> <span class="o">=</span> <span class="s2">&quot;data/out/</span><span class="si">%g</span><span class="s2">_</span><span class="si">%g</span><span class="s2">_traj_contacts.h5&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_epoch</span><span class="p">,</span> <span class="n">i_aux</span><span class="p">)</span>
+                <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hf</span><span class="p">:</span>
+                    <span class="n">hf</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">&quot;contacts&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">ib</span> <span class="o">=</span> <span class="n">ie</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">distraj</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">))],</span> <span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span></div>
+
+<div class="viewcode-block" id="Analyzer.gen_clusters_rama_all"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_rama_all">[docs]</a>    <span class="k">def</span> <span class="nf">gen_clusters_rama_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gro</span><span class="p">,</span> <span class="n">mcs</span><span class="p">,</span> <span class="n">ms</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cluster trajectories into microstates by using Ramachandran angle regions</span>
+<span class="sd">        Return labels (int array) containing trajectory by microstates</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">trajs</span> <span class="o">=</span> <span class="n">traj</span><span class="o">.</span><span class="n">MultiTimeSeries</span><span class="p">(</span><span class="n">top</span><span class="o">=</span><span class="n">gro</span><span class="p">,</span> <span class="n">trajs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        
+        <span class="c1">#phi, psi = tr.discretize(method=&#39;hdbscan&#39;, mcs=mcs, ms=ms)</span>
+        <span class="n">trajs</span><span class="o">.</span><span class="n">joint_discretize</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;hdbscan&#39;</span><span class="p">,</span> <span class="n">mcs</span><span class="o">=</span><span class="n">mcs</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="n">ms</span><span class="p">,</span> <span class="n">dPCA</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+
+        <span class="n">phi_cum</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">psi_cum</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">tr</span> <span class="ow">in</span> <span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">:</span>
+            <span class="n">tr</span><span class="o">.</span><span class="n">find_keys</span><span class="p">()</span>
+            <span class="n">tr</span><span class="o">.</span><span class="n">keys</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">compute_phi</span><span class="p">(</span><span class="n">tr</span><span class="o">.</span><span class="n">mdt</span><span class="p">)</span>
+            <span class="n">psi</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">compute_psi</span><span class="p">(</span><span class="n">tr</span><span class="o">.</span><span class="n">mdt</span><span class="p">)</span>
+            <span class="n">phi_cum</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">phi</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">psi_cum</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">psi</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">phi_cum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">phi_cum</span><span class="p">)</span>
+        <span class="n">psi_cum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">psi_cum</span><span class="p">)</span>
+
+        <span class="n">ib</span><span class="p">,</span> <span class="n">ie</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">)):</span>
+            <span class="n">ie</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">distraj</span><span class="p">)</span>
+            <span class="c1">#ax[i].scatter(phi_cum[ib:ie], psi_cum[ib:ie], c=trajs.traj_list[i].distraj, s=1)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">)</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">n_runs</span><span class="p">):</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">phi_cum</span><span class="p">[</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">],</span> <span class="n">psi_cum</span><span class="p">[</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">],</span> <span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">distraj</span><span class="p">))</span>
+                <span class="n">i_aux</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_epoch</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n_runs</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span>
+                <span class="n">h5file</span> <span class="o">=</span> <span class="s2">&quot;data/out/</span><span class="si">%g</span><span class="s2">_</span><span class="si">%g</span><span class="s2">_traj_ramachandran.h5&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_epoch</span><span class="p">,</span> <span class="n">i_aux</span><span class="p">)</span>
+                <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hf</span><span class="p">:</span>
+                    <span class="n">hf</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">&quot;rama_angles&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">ib</span> <span class="o">=</span> <span class="n">ie</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">distraj</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span><span class="p">))],</span> <span class="n">trajs</span><span class="o">.</span><span class="n">traj_list</span></div>
+    
+<div class="viewcode-block" id="Analyzer.gen_clusters_rama"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_rama">[docs]</a>    <span class="k">def</span> <span class="nf">gen_clusters_rama</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">gro</span><span class="p">,</span> <span class="n">method</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cluster trajectories into microstates by using Ramachandran angle regions</span>
+<span class="sd">        Return labels (int array) containing trajectory by microstates</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tr</span> <span class="o">=</span> <span class="n">traj</span><span class="o">.</span><span class="n">TimeSeries</span><span class="p">(</span><span class="n">top</span><span class="o">=</span><span class="n">gro</span><span class="p">,</span> <span class="n">traj</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="c1">#traj=[self.data[i]]</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;ramagrid&#39;</span><span class="p">:</span>
+            <span class="c1">#nbins = 8 + 2*self.n_epoch</span>
+            <span class="n">tr</span><span class="o">.</span><span class="n">discretize</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;ramagrid&#39;</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tr</span><span class="o">.</span><span class="n">discretize</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">])</span>
+        
+        <span class="n">tr</span><span class="o">.</span><span class="n">find_keys</span><span class="p">()</span>
+        <span class="n">tr</span><span class="o">.</span><span class="n">keys</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="n">phi</span><span class="p">,</span> <span class="n">psi</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">compute_phi</span><span class="p">(</span><span class="n">tr</span><span class="o">.</span><span class="n">mdt</span><span class="p">),</span> <span class="n">md</span><span class="o">.</span><span class="n">compute_psi</span><span class="p">(</span><span class="n">tr</span><span class="o">.</span><span class="n">mdt</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">n_runs</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">phi</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">psi</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tr</span><span class="o">.</span><span class="n">distraj</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;rama&#39;</span><span class="p">:</span> <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">phi</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">psi</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">i_aux</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_epoch</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n_runs</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span>
+            <span class="n">h5file</span> <span class="o">=</span> <span class="s2">&quot;data/out/</span><span class="si">%g</span><span class="s2">_</span><span class="si">%g</span><span class="s2">_traj_ramachandran.h5&quot;</span><span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_epoch</span><span class="p">,</span> <span class="n">i_aux</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hf</span><span class="p">:</span>
+                <span class="n">hf</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">&quot;rama_angles&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">tr</span><span class="o">.</span><span class="n">distraj</span><span class="p">,</span> <span class="n">tr</span></div>
+
+<div class="viewcode-block" id="Analyzer.gen_clusters_mueller"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_clusters_mueller">[docs]</a>    <span class="k">def</span> <span class="nf">gen_clusters_mueller</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">mcs</span><span class="p">,</span> <span class="n">ms</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cluster trajectories into microstates by using HDBSCAN.</span>
+<span class="sd">        Return labels (int array) containing trajectory by microstates</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]]</span>
+        <span class="n">hb</span> <span class="o">=</span> <span class="n">hdbscan</span><span class="o">.</span><span class="n">HDBSCAN</span><span class="p">(</span><span class="n">min_cluster_size</span> <span class="o">=</span> <span class="n">mcs</span><span class="p">,</span> <span class="n">min_samples</span> <span class="o">=</span> <span class="n">ms</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">hb</span><span class="o">.</span><span class="n">labels_</span>
+        <span class="n">n_micro_clusters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">labels</span><span class="p">))</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">in</span> <span class="n">labels</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">n_noise</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># remove from clusters points with small (&lt;0.1) probability</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">labels</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">hb</span><span class="o">.</span><span class="n">probabilities_</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.1</span><span class="p">:</span>
+                <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="c1"># # plot better from outside, put plotting function in analyzer_lib</span>
+        <span class="c1"># colors = [&#39;royalblue&#39;, &#39;maroon&#39;, &#39;forestgreen&#39;, &#39;mediumorchid&#39;, \</span>
+        <span class="c1"># &#39;tan&#39;, &#39;deeppink&#39;, &#39;olive&#39;, &#39;goldenrod&#39;, &#39;lightcyan&#39;, &#39;lightgray&#39;]</span>
+        <span class="c1"># vectorizer = np.vectorize(lambda x: colors[x % len(colors)])</span>
+        <span class="c1"># plt.scatter(X[:,0],X[:,1], c=vectorizer(labels))</span>
+        <span class="c1"># plt.savefig(&#39;mueller_hdbscan.png&#39;)</span>
+
+        <span class="c1"># remove noise from microstate trajectory</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">last</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">while</span> <span class="n">last</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">last</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">labels</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">x_i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">last</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="n">x_i</span>
+
+        <span class="k">return</span> <span class="n">labels</span></div>
+
+<div class="viewcode-block" id="Analyzer.gen_msm"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_msm">[docs]</a>    <span class="k">def</span> <span class="nf">gen_msm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tr_instance</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Do MSM and build macrostates</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tr_instance : bool</span>
+<span class="sd">            True if an instance of trajectory exists</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lagt</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">sym</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sym</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span>
+        <span class="c1"># Create an instance of traj for each trajectory and merge in a single list</span>
+        <span class="k">if</span> <span class="n">tr_instance</span><span class="p">:</span>
+            <span class="n">distrajs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trajs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels_all</span>
+            <span class="n">distrajs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">:</span>
+                <span class="n">distraj</span> <span class="o">=</span> <span class="n">traj</span><span class="o">.</span><span class="n">TimeSeries</span><span class="p">(</span><span class="n">distraj</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">label</span><span class="p">),</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+                <span class="n">distraj</span><span class="o">.</span><span class="n">find_keys</span><span class="p">()</span>
+                <span class="n">distraj</span><span class="o">.</span><span class="n">keys</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+                <span class="n">distrajs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">distraj</span><span class="p">)</span>
+        <span class="c1"># Invoke SuperMSM to collect keys from all trajectories</span>
+        <span class="n">smsm</span> <span class="o">=</span> <span class="n">msm</span><span class="o">.</span><span class="n">SuperMSM</span><span class="p">(</span><span class="n">distrajs</span><span class="p">,</span> <span class="n">sym</span><span class="o">=</span><span class="n">sym</span><span class="p">)</span>
+        <span class="n">micro_msm</span> <span class="o">=</span> <span class="n">msm</span><span class="o">.</span><span class="n">MSM</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">distrajs</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="n">smsm</span><span class="o">.</span><span class="n">keys</span><span class="p">,</span> <span class="n">lagt</span><span class="o">=</span><span class="n">lagt</span><span class="p">,</span> <span class="n">sym</span><span class="o">=</span><span class="n">sym</span><span class="p">)</span>
+        <span class="n">micro_msm</span><span class="o">.</span><span class="n">do_count</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">rate</span><span class="p">:</span>
+            <span class="n">smsm</span><span class="o">.</span><span class="n">do_lbrate</span><span class="p">()</span>
+            <span class="n">micro_msm</span><span class="o">.</span><span class="n">do_rate</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;MLPB&#39;</span><span class="p">,</span> <span class="n">evecs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="n">smsm</span><span class="o">.</span><span class="n">lbrate</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">micro_msm</span><span class="o">.</span><span class="n">do_trans</span><span class="p">(</span><span class="n">evecs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MSM</span> <span class="o">=</span> <span class="n">micro_msm</span></div>
+
+<span class="c1">#    def gen_macro_msm(self, n_clusters=1):</span>
+<span class="c1">#        &quot;&quot;&quot;</span>
+<span class="c1">#        Build macrostates</span>
+<span class="c1">#</span>
+<span class="c1">#        &quot;&quot;&quot;</span>
+<span class="c1">#        MSM = self.MSM</span>
+<span class="c1">#        macro_msm = fewsm.FEWSM(MSM, N=n_clusters)</span>
+<span class="c1">#        self.mMSM = macro_msm</span>
+<span class="c1">#</span>
+<span class="c1">#        fig, ax = plt.subplots(figsize=(5,5))</span>
+<span class="c1">#        mat = np.zeros((20,20), float)</span>
+<span class="c1">#        for i in MSM.keep_keys:</span>
+<span class="c1">#            j = MSM.keep_keys.index(i)</span>
+<span class="c1">#            if j in mmsm.macros[0]:</span>
+<span class="c1">#                mat[i%20, int(i/20)] = 1</span>
+<span class="c1">#            elif j in mmsm.macros[1]:</span>
+<span class="c1">#                mat[i%20, int(i/20)] = 2</span>
+<span class="c1">#            else:</span>
+<span class="c1">#                mat[i%20, int(i/20)] = 3</span>
+<span class="c1">#            mat#print i, i[0]%20, int(i[0]/20), -i[1]</span>
+<span class="c1">#        my_cmap = cm.get_cmap(&#39;viridis&#39;)</span>
+<span class="c1">#        my_cmap.set_under(&#39;w&#39;)</span>
+<span class="c1">#        ax.imshow(mat.transpose(), interpolation=&quot;none&quot;, origin=&#39;lower&#39;, \</span>
+<span class="c1">#             cmap=my_cmap, vmin = 0.5)</span>
+<span class="c1">#        plt.savefig(&#39;fewms.png&#39;)</span>
+        
+<div class="viewcode-block" id="Analyzer.resampler"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.resampler">[docs]</a>    <span class="k">def</span> <span class="nf">resampler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tprs</span><span class="p">,</span> <span class="n">scoring</span><span class="o">=</span><span class="s1">&#39;populations&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tprs : list</span>
+<span class="sd">            tpr files from Launcher to generate new gro files</span>
+<span class="sd">        scoring : str</span>
+<span class="sd">            Scoring function to determine how to resample</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">scoring</span> <span class="o">==</span> <span class="s2">&quot;counts&quot;</span><span class="p">:</span>
+            <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">counts</span><span class="p">()</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_input</span><span class="p">(</span><span class="n">states</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">tprs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">scoring</span> <span class="o">==</span> <span class="s2">&quot;populations&quot;</span><span class="p">:</span>
+            <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">populs</span><span class="p">()</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_input</span><span class="p">(</span><span class="n">states</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">tprs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">scoring</span> <span class="o">==</span> <span class="s2">&quot;non_detailed_balance&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sym</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Cannot impose symmetry with chosen scoring criteria.&quot;</span><span class="p">)</span>
+            <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">non_detbal</span><span class="p">()</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_input</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">tprs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">scoring</span> <span class="o">==</span> <span class="s2">&quot;flux&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sym</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Cannot impose symmetry with chosen scoring criteria.&quot;</span><span class="p">)</span>
+            <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flux_inbalance</span><span class="p">()</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_input</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">tprs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">inputs</span></div>
+
+<div class="viewcode-block" id="Analyzer.populs"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.populs">[docs]</a>    <span class="k">def</span> <span class="nf">populs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resampling probability inversely proportional to</span>
+<span class="sd">        state populations. JCTC 2019 Betz and Dror.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">peqT</span>
+        <span class="k">return</span> <span class="n">p</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Analyzer.counts"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.counts">[docs]</a>    <span class="k">def</span> <span class="nf">counts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resampling probability inversely proportional to</span>
+<span class="sd">        number of visits.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#p = 1./np.sum(self.MSM.count, axis=1)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">1.</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">count</span><span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="p">:]))</span> \
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">count</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span>     \
+            <span class="k">else</span> <span class="mi">0</span>                             \
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">keep_states</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot; Error in &#39;resampler&#39;. Please choose another &#39;scoring&#39; option&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">p</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Analyzer.non_detbal"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.non_detbal">[docs]</a>    <span class="k">def</span> <span class="nf">non_detbal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resampling probability proportional to lack of detailed</span>
+<span class="sd">        balance for each MSM state.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">count</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">count</span><span class="p">)</span>
+        <span class="n">nondb</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">count</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">count</span><span class="p">))</span><span class="o">/</span><span class="n">total</span>
+        <span class="n">nondb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">nondb</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># remove all states not satisfying ergodicity</span>
+        <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="n">nondb</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">keep_states</span><span class="p">]</span>
+        <span class="n">states</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">keep_states</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">states</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">states</span></div>
+
+<div class="viewcode-block" id="Analyzer.flux_inbalance"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.flux_inbalance">[docs]</a>    <span class="k">def</span> <span class="nf">flux_inbalance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resampling probality proportional to flux imbalance.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#flux = [abs(np.sum(self.MSM.count[x, :]) - np.sum(self.MSM.count[:,x]))/\</span>
+        <span class="c1">#        (np.sum(self.MSM.count[:,x]) + np.sum(self.MSM.count[x, :])) \</span>
+        <span class="c1">#        for x in self.MSM.keep_states]</span>
+        <span class="n">flux</span> <span class="o">=</span> <span class="p">[(</span><span class="nb">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">count</span><span class="p">[</span><span class="n">x</span><span class="p">,:])</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">count</span><span class="p">[:,</span><span class="n">x</span><span class="p">]))</span><span class="o">/</span>\
+        <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">count</span><span class="p">[:,</span><span class="n">x</span><span class="p">])</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">count</span><span class="p">[</span><span class="n">x</span><span class="p">,:])))</span> \
+        <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">count</span><span class="p">[:,</span><span class="n">x</span><span class="p">])</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">count</span><span class="p">[</span><span class="n">x</span><span class="p">,:]))</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+        <span class="k">else</span> <span class="mi">0</span> \
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">keep_states</span><span class="p">]</span> <span class="c1">#keep_keys</span>
+        <span class="c1">#this is done by above abs: flux += np.min(flux)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">flux</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot; Error in &#39;resampler&#39;. Please choose another &#39;scoring&#39; option&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">flux</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">flux</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Analyzer.gen_input"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_input">[docs]</a>    <span class="k">def</span> <span class="nf">gen_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">tprs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        inpcrd : str</span>
+<span class="sd">            File containing coordinates for next round</span>
+<span class="sd">        states : np array</span>
+<span class="sd">            Scoring of each macrostate</span>
+<span class="sd">        n_msm_runs : int array</span>
+<span class="sd">            List of labels from which generate new inputs</span>
+<span class="sd">        n_msm_runs_aux : int array</span>
+<span class="sd">            Number of new runs for each label</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Determine distribution of new runs according to &#39;states&#39;</span>
+        <span class="n">n_runs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_runs</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">states</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">keep_states</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">states</span><span class="p">)</span> <span class="p">,</span> <span class="n">states</span><span class="p">)</span>
+        <span class="n">n_msm_runs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">keep_states</span><span class="p">)),</span> <span class="n">n_runs</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">states</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s1">&#39;Runs for new epoch:&#39;</span><span class="p">,</span> <span class="n">n_msm_runs</span><span class="p">)</span>
+        
+        <span class="c1">## OPTION 1: Use weights to randomly choose a frame and create a corresponding .gro file</span>
+        <span class="c1">#n_msm_runs_aux = np.zeros(len(self.MSM.keep_states))</span>
+        <span class="c1">##print(list(n_msm_runs))#print(self.MSM.keep_states)</span>
+        <span class="c1">#for i in self.MSM.keep_states:</span>
+        <span class="c1">#    n_msm_runs_aux[i] = len(analyzer_lib.list_duplicates_of(list(n_msm_runs), i))</span>
+        <span class="c1">#    #n_msm_runs_aux.append(len(n_msm_runs[ n_msm_runs == i ]))#.count(i)</span>
+        <span class="c1">#inputs = analyzer_lib.gen_input_weights(n_msm_runs_aux, self.labels_all, self.trajs, tprs)</span>
+
+        <span class="c1"># OPTION 2: Use a dict containing all trajs, labels and frames to pick randomly a frame</span>
+        <span class="n">state_kv</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">n_msm_runs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">state_kv</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Building entry for microstate </span><span class="si">%g</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">n</span><span class="p">)</span>
+                <span class="c1">#analyzer_lib.gen_dict_state(n, self.trajs, state_kv)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gen_dict_state</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">state_kv</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">traj</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">which_tr</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">state_kv</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+                <span class="n">tpr</span> <span class="o">=</span> <span class="n">tprs</span><span class="p">[</span><span class="n">which_tr</span><span class="p">]</span>
+                <span class="n">analyzer_lib</span><span class="o">.</span><span class="n">map_inputs</span><span class="p">(</span><span class="n">traj</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">tpr</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error in gen_input, check n_msm_runs and MSM.keys&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">inputs</span></div>
+
+<div class="viewcode-block" id="Analyzer.gen_dict_state"><a class="viewcode-back" href="../../../adaptivemastermsm.analyzer.html#adaptivemastermsm.analyzer.analyzer.Analyzer.gen_dict_state">[docs]</a>    <span class="k">def</span> <span class="nf">gen_dict_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">state_kv</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates dictionary entry for state s</span>
+<span class="sd">    </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        s : str, int</span>
+<span class="sd">            The key for the state</span>
+<span class="sd">        state_kv : dict</span>
+<span class="sd">            Dictionary containing all trajectories and corresponding frames</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">state_kv</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">trajs</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">+=</span><span class="mi">1</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ivals</span> <span class="o">=</span> <span class="n">analyzer_lib</span><span class="o">.</span><span class="n">list_duplicates_of</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">distraj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MSM</span><span class="o">.</span><span class="n">keys</span><span class="p">[</span><span class="n">s</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ivals</span><span class="p">:</span>
+                    <span class="n">state_kv</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">t</span><span class="o">.</span><span class="n">mdt</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../../index.html">
+              <img class="logo" src="../../../_static/Logo_Web.png" alt="Logo"/>
+            </a></p>
+<h1 class="logo"><a href="../../../index.html">AdaptiveMasterMSM</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Overview:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../Installation.html">Download and Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Documentation.html">Modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../License.html">License and How to cite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Contact.html">Contributing and Contact</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, David de Sancho and Ion Mitxelena.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
