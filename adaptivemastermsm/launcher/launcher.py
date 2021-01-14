@@ -48,7 +48,7 @@ class Launcher(object):
         #else:
         filemdp = mdp
         emstep = 0.002
-        nsteps = 50000#150000
+        nsteps = 150000#50000
         if mdp in ["min","nvt","npt","prod"]:
             if mdp is "min": txt = launcher_lib.write_mdp_min()
             if mdp is "nvt": txt = launcher_lib.write_mdp_nvt()

@@ -191,7 +191,6 @@ class Analyzer(object):
         
         #phi, psi = tr.discretize(method='hdbscan', mcs=mcs, ms=ms)
         trajs.joint_discretize(method='hdbscan', mcs=mcs, ms=ms, dPCA=True)
-        sys.exit()
 
         phi_cum = []
         psi_cum = []
