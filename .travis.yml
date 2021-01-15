@@ -7,7 +7,7 @@ travis:
     - develop
 
 install:
-    - python setup.py install --user
+    - python setup.py develop --user
 
 
 script:
