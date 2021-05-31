@@ -29,7 +29,7 @@ class Launcher(object):
         """
         Launcher.system = simsys
 
-    def gen_tpr(self, mdp=None, tpr='data/out.tpr'):#, sim_time=None): #, i, chk=None):
+    def gen_tpr(self, mdp=None, tpr='data/out.tpr', nsteps=250000):#, sim_time=None,chk=None):
         """
         Function for generating tpr files
 
@@ -48,7 +48,6 @@ class Launcher(object):
         #else:
         filemdp = mdp
         emstep = 0.002
-        nsteps = 150000#50000
         if mdp in ["min","nvt","npt","prod"]:
             if mdp is "min": txt = launcher_lib.write_mdp_min()
             if mdp is "nvt": txt = launcher_lib.write_mdp_nvt()
