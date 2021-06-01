@@ -42,8 +42,7 @@ def gen_input_weights(n_msm_runs, labels_all, trajs, tprs):
             which_tr = labels_all[which_tr_index[0]]
             # obtain positions in traj where label 'i' is found
             index = list_duplicates_of(list(which_tr), i)
-            print('ionix',i)
-            print(w[:,i])
+            print('ionix',i,w[:,i])
             if len(index) is 0: break # redundant if 'weigths' works
             j = random.choice(index)
             map_inputs(trajs[which_tr_index[0]].mdt, i, j, inputs, tprs[which_tr_index[0]])
@@ -54,8 +53,10 @@ def gen_input_weights(n_msm_runs, labels_all, trajs, tprs):
 
     return inputs
 
-def map_inputs(traj, label, frame, inputs, tpr):
+def map_inputs(label, frame, inputs, not_run, traj=None, tpr=None):
     """
+
+    Create new .gro input files
         
     Parameters
     ----------
@@ -65,15 +66,20 @@ def map_inputs(traj, label, frame, inputs, tpr):
         Label identifying the initial state of the new input
     frame : int
         Frame corresponding to the initial state for the new input
+    not_run : bool
+        Use already simulated trajectories for epochs
 
     """
 
-    fn = '%s_%s.gro'%(label,frame)
-    inputs.append(fn)
-    tr = 'data/%s_%s.xtc'%(label,frame)
-    traj.save_xtc(tr)
-    cmd = "gmx trjconv -s %s -f %s -o %s -dump %s <<EOF\n1\nEOF"%(tpr, tr, fn, traj.time[frame])
-    os.system(cmd)
+    if not_run:
+        inputs.append([frame,label])
+    else:
+        fn = '%s_%s.gro'%(label,frame)
+        inputs.append(fn)
+        tr = 'data/%s_%s.xtc'%(label,frame)
+        traj.save_xtc(tr)
+        cmd = "gmx trjconv -s %s -f %s -o %s -dump %s <<EOF\n1\nEOF"%(tpr, tr, fn, traj.time[frame])
+        os.system(cmd)
 
 def list_duplicates_of(seq,item):
     start_at = -1

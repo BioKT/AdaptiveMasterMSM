@@ -4,7 +4,7 @@ This file is part of the AdaptiveMasterMSM package.
 """
 # General
 import h5py
-import os, sys
+import sys
 from os import path
 import random
 # Maths
@@ -23,6 +23,7 @@ import mdtraj as md
 from ..analyzer import analyzer_lib
 # MasterMSM
 from mastermsm.trajectory import traj
+from mastermsm.trajectory import traj_lib
 from mastermsm.msm import msm
 from mastermsm.fewsm import fewsm
 
@@ -53,12 +54,8 @@ class Analyzer(object):
                 self.data.append(np.array(fr['data']))
                 fr.close()
 
-        # Next steps better to do from outside:
-        # Do MSM and get macrostates build_msm(mcs, ms, lagt, rate_mat=True)
-        # Call resampler(macmsm) and gen_input
-
     def build_msm(self, n_epoch, n_runs, lagt, mcs=85, ms=75, dt=1, sym=False,\
-                    n_clusters=0, rate_mat=True, gro=None, method='hdbscan', offset=0):
+                n_clusters=0, rate_mat=True, gro=None, method=None, offset=0):
         """
         Build the MSM for the next round.
         Return macrostates obtained from the MSM.
@@ -84,7 +81,8 @@ class Analyzer(object):
         gro : str
             Path to .gro or .pdb file
         method : str
-            Discretization method (hdbscan, rama, ramagrid)
+            Discretization method (hdbscan (applied to backbone_torsions
+            or contacts), rama (['A','E']), ramagrid (grid))
         offset : int
             Number of input trajectories. If None offset=1
 
@@ -94,7 +92,7 @@ class Analyzer(object):
         #1- Clustering:
         # one 'labels' per parallel run, TimeSeries will merge all together
         self.labels_all, trs = [], []
-        if method=='hdbscan' or method=='contacts':
+        if method=='backbone_torsions' or method=='contacts':
             self.labels_all, trs = self.gen_clusters_all(gro, method, mcs, ms)
             for i,tr in enumerate(trs):
                 if (i+1) > (len(self.data)-self.n_runs):
@@ -106,7 +104,7 @@ class Analyzer(object):
                     h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i_aux)
                     with h5py.File(h5file, "w") as hf:
                         hf.create_dataset("trajectory", data=data)
-        else:
+        elif method=='rama' or method=='ramagrid':
             for i in range(len(self.data)):
                 #labels = self.gen_clusters_mueller(i, mcs, ms)
                 labels, tr = self.gen_clusters_rama(i, gro, method)
@@ -118,12 +116,18 @@ class Analyzer(object):
                     h5file = "data/out/%g_%g_traj.h5"%(self.n_epoch, i_aux)
                     with h5py.File(h5file, "w") as hf:
                         hf.create_dataset("rama_trajectory", data=data)
+        else:
+            for n,data in enumerate(self.data):
+                if n_epoch > 0 and n == 0: continue
+                tr = traj.TimeSeries(distraj=list(data), dt=dt)
+                tr.find_keys()
+                tr.keys.sort()
+                trs.append(tr)
                 
         self.trajs = trs
 
         #2- do MSM:
-        #self.gen_msm(tr_instance=False)
-        self.gen_msm(tr_instance=True)
+        self.gen_msm(tr_instance=True) #tr_instance=False
 
         if self.n_clusters > 0:
             self.gen_macro_msm()
@@ -137,10 +141,11 @@ class Analyzer(object):
 
     def gen_clusters_all(self, gro, method, mcs, ms):
         """
-        Cluster all trajectories at once by 'hdbscan' or 'contacts' based methods
+        Cluster all trajectories at once by 'backbone_torsions' or 'contacts'
+        as features for HDBSCAN
 
         """
-        if method=='hdbscan':
+        if method=='backbone_torsions':
             labels_all, trs = self.gen_clusters_rama_all(gro, mcs, ms)
         else:
             labels_all, trs = self.gen_clusters_contacts_all(gro)
@@ -190,7 +195,7 @@ class Analyzer(object):
         trajs = traj.MultiTimeSeries(top=gro, trajs=self.data)
         
         #phi, psi = tr.discretize(method='hdbscan', mcs=mcs, ms=ms)
-        trajs.joint_discretize(method='hdbscan', mcs=mcs, ms=ms, dPCA=True)
+        trajs.joint_discretize(method='backbone_torsions', mcs=mcs, ms=ms, dPCA=False)
 
         phi_cum = []
         psi_cum = []
@@ -221,7 +226,7 @@ class Analyzer(object):
     
     def gen_clusters_rama(self, i, gro, method):
         """
-        Cluster trajectories into microstates by using Ramachandran angle regions
+        Cluster trajectories into microstates by using Ramachandran angle regions or a grid
         Return labels (int array) containing trajectory by microstates
 
         """
@@ -256,8 +261,8 @@ class Analyzer(object):
         X = data[:,[1,2]]
         hb = hdbscan.HDBSCAN(min_cluster_size = mcs, min_samples = ms).fit(X)
         labels = hb.labels_
-        n_micro_clusters = len(set(labels)) - (1 if -1 in labels else 0)
-        n_noise = list(labels).count(-1)
+        #n_micro_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+        #n_noise = list(labels).count(-1)
 
         # remove from clusters points with small (<0.1) probability
         for i, x_i in enumerate(labels):
@@ -272,17 +277,7 @@ class Analyzer(object):
         # plt.savefig('mueller_hdbscan.png')
 
         # remove noise from microstate trajectory
-        i = 0
-        last = labels[i]
-        while last == -1:
-            i += 1
-            last = labels[i]
-
-        for i, x_i in enumerate(labels):
-            if x_i == -1:
-                labels[i] = last
-            else:
-                last = x_i
+        labels = traj_lib._filter_states(labels)
 
         return labels
 
@@ -345,7 +340,7 @@ class Analyzer(object):
 #             cmap=my_cmap, vmin = 0.5)
 #        plt.savefig('fewms.png')
         
-    def resampler(self, tprs, scoring='populations'):
+    def resampler(self, tprs, scoring, not_run=False):
         """
         
         Parameters
@@ -354,26 +349,27 @@ class Analyzer(object):
             tpr files from Launcher to generate new gro files
         scoring : str
             Scoring function to determine how to resample
+        not_run : bool
+            Use already simulated trajectories for epochs
 
         """
 
         if scoring == "counts":
             states = self.counts()
-            inputs = self.gen_input(states.real, tprs)
+            #states = states.real
         elif scoring == "populations":
             states = self.populs()
-            inputs = self.gen_input(states.real, tprs)
+            states = states.real
         elif scoring == "non_detailed_balance":
             if self.sym:
                 raise Exception("Cannot impose symmetry with chosen scoring criteria.")
             states = self.non_detbal()
-            inputs = self.gen_input(states, tprs)
         elif scoring == "flux":
             if self.sym:
                 raise Exception("Cannot impose symmetry with chosen scoring criteria.")
             states = self.flux_inbalance()
-            inputs = self.gen_input(states, tprs)
 
+        inputs = self.gen_input(states, tprs, not_run)
         return inputs
 
     def populs(self):
@@ -433,7 +429,20 @@ class Analyzer(object):
             sys.exit(" Error in 'resampler'. Please choose another 'scoring' option")
         return flux/np.sum(flux)
 
-    def gen_input(self, states, tprs):
+#    def boltzmann_popul(self, temp):
+#        """
+#        Resampling probality proportional to Boltzmann populations estimation.
+#
+#        """
+#        beta = 1./(k*temp)
+#        # e = get energy from a frame that belong to cluster x
+#        boltz = [np.exp(-e*beta)/self.MSM.peqT[x] for x in self.MSM.keep_states]
+#        
+#        if np.sum(boltz) == 0:
+#            sys.exit(" Error in 'resampler'. Please choose another 'scoring' option")
+#        return boltz #/np.sum(flux)
+
+    def gen_input(self, states, tprs, not_run):
         """
         
         Parameters
@@ -446,11 +455,13 @@ class Analyzer(object):
             List of labels from which generate new inputs
         n_msm_runs_aux : int array
             Number of new runs for each label
+        not_run : bool
+            Use already simulated trajectories for epochs
 
         """
         # Determine distribution of new runs according to 'states'
         n_runs = self.n_runs
-        print(np.sum(states), len(self.MSM.keep_states),len(states) , states)
+        print(np.sum(states), len(self.MSM.keep_states),len(states))# , states)
         n_msm_runs = np.random.choice(range(len(self.MSM.keep_states)), n_runs, p=states)
         print ('Runs for new epoch:', n_msm_runs)
         
@@ -469,17 +480,21 @@ class Analyzer(object):
             if n not in state_kv.keys():
                 print ("Building entry for microstate %g"%n)
                 #analyzer_lib.gen_dict_state(n, self.trajs, state_kv)
-                self.gen_dict_state(n, state_kv)
+                self.gen_dict_state(n, state_kv, not_run)
             try:
-                traj, frame, which_tr = random.choice(state_kv[n])
-                tpr = tprs[which_tr]
-                analyzer_lib.map_inputs(traj, n, frame, inputs, tpr)
+                if not_run:
+                    frame, which_tr = random.choice(state_kv[n])
+                    analyzer_lib.map_inputs(n, frame, inputs, not_run)
+                else:
+                    traj, frame, which_tr = random.choice(state_kv[n])
+                    tpr = tprs[which_tr]
+                    analyzer_lib.map_inputs(n, frame, inputs, not_run, traj=traj, tpr=tpr)
             except IndexError:
                 print('Error in gen_input, check n_msm_runs and MSM.keys')
 
         return inputs
 
-    def gen_dict_state(self, s, state_kv):
+    def gen_dict_state(self, s, state_kv, not_run):
         """
         Generates dictionary entry for state s
     
@@ -489,6 +504,8 @@ class Analyzer(object):
             The key for the state
         state_kv : dict
             Dictionary containing all trajectories and corresponding frames
+        not_run : bool
+            Use already simulated trajectories for epochs
 
         """
         state_kv[s] = []
@@ -498,6 +515,9 @@ class Analyzer(object):
             try:
                 ivals = analyzer_lib.list_duplicates_of(t.distraj, self.MSM.keys[s])
                 for i in ivals:
-                    state_kv[s].append([t.mdt, i, n-1])
+                    if not_run:
+                        state_kv[s].append([i, n-1])
+                    else:
+                        state_kv[s].append([t.mdt, i, n-1])
             except KeyError:
                 pass
