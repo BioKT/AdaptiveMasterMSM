@@ -55,7 +55,8 @@ class Analyzer(object):
                 fr.close()
 
     def build_msm(self, n_epoch, n_runs, lagt, mcs=85, ms=75, dt=1, sym=False,\
-                n_clusters=0, rate_mat=True, gro=None, method=None, offset=0):
+                    n_clusters=0, rate_mat=True, rate_method='Taylor', \
+                    gro=None, method=None, offset=0, entropy=False):
         """
         Build the MSM for the next round.
         Return macrostates obtained from the MSM.
@@ -78,6 +79,8 @@ class Analyzer(object):
             Number of clusters or macrostates
         rate_mat : bool
             Build the MSM from K matrix, otherwise T is used
+        rate_method : str
+            'Taylor' or 'MLPB'
         gro : str
             Path to .gro or .pdb file
         method : str
@@ -85,6 +88,8 @@ class Analyzer(object):
             or contacts), rama (['A','E']), ramagrid (grid))
         offset : int
             Number of input trajectories. If None offset=1
+        entropy : bool
+            Add a pseudocount to COUNT matrix to compute later relative entropy
 
         """
         self.n_epoch, self.n_runs, self.n_clusters = n_epoch, n_runs, n_clusters
@@ -127,7 +132,7 @@ class Analyzer(object):
         self.trajs = trs
 
         #2- do MSM:
-        self.gen_msm(tr_instance=True) #tr_instance=False
+        self.gen_msm(tr_instance=True, method=rate_method, entropy=entropy)
 
         if self.n_clusters > 0:
             self.gen_macro_msm()
@@ -281,7 +286,7 @@ class Analyzer(object):
 
         return labels
 
-    def gen_msm(self, tr_instance=False):
+    def gen_msm(self, tr_instance=False, method='Taylor', entropy=False):
         """
         Do MSM and build macrostates
 
@@ -289,6 +294,8 @@ class Analyzer(object):
         ----------
         tr_instance : bool
             True if an instance of trajectory exists
+        method: str
+            If rate=True, how to compute rate matrix. 'MLPB' or 'Taylor'
 
         """
         lagt, dt, sym, rate = self.lt, self.dt, self.sym, self.rate
@@ -307,11 +314,20 @@ class Analyzer(object):
         smsm = msm.SuperMSM(distrajs, sym=sym)
         micro_msm = msm.MSM(data=distrajs, keys=smsm.keys, lagt=lagt, sym=sym)
         micro_msm.do_count()
+        
+        if entropy:
+            nframes = 0
+            for tr in distrajs:
+                nframes += len(tr.distraj)
+            micro_msm.count = micro_msm.count + 1./float(nframes)
+
         if rate:
-            smsm.do_lbrate()
-            micro_msm.do_rate(method='MLPB', evecs=False, init=smsm.lbrate)
+            smsm.do_lbrate(evecs=False)
+            micro_msm.do_trans(evecs=False)
+            micro_msm.do_rate(method=method, evecs=True, init=smsm.lbrate)
         else:
             micro_msm.do_trans(evecs=True)
+            
         self.MSM = micro_msm
 
 #    def gen_macro_msm(self, n_clusters=1):
@@ -447,8 +463,6 @@ class Analyzer(object):
         
         Parameters
         ----------
-        inpcrd : str
-            File containing coordinates for next round
         states : np array
             Scoring of each macrostate
         n_msm_runs : int array
@@ -461,7 +475,7 @@ class Analyzer(object):
         """
         # Determine distribution of new runs according to 'states'
         n_runs = self.n_runs
-        print(np.sum(states), len(self.MSM.keep_states),len(states))# , states)
+        print('sum probabilities:',np.sum(states), len(self.MSM.keep_states),len(states))
         n_msm_runs = np.random.choice(range(len(self.MSM.keep_states)), n_runs, p=states)
         print ('Runs for new epoch:', n_msm_runs)
         
