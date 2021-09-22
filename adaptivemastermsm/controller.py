@@ -113,7 +113,7 @@ class Controller(object):
 
     def adaptive_sampling(self, n_runs, lagt, mcs=85, ms=15, sym=False, rate_mat=True,    \
                         scoring='populations', n_epochs=2, nsteps=250000, max_time=100000.0,\
-                        method=None, not_run=False):
+                        method=None, not_run=False, entropy=False):
         """
         Implementation of the Adaptive Sampling algorithm
 
@@ -147,8 +147,9 @@ class Controller(object):
         while True:
             # ANALYZER #
             self.anal = analyzer.Analyzer(self.trajfiles)
-            self.anal.build_msm(n, n_runs, lagt, method=method, mcs=mcs, ms=ms,\
-                sym=sym, gro=self.gro_initial, rate_mat=rate_mat, offset=offset)
+            self.anal.build_msm(n, n_runs, lagt, method=method, mcs=mcs, ms=ms,  \
+                                sym=sym, gro=self.gro_initial, rate_mat=rate_mat,\
+                                offset=offset, entropy=entropy)
             if not_run:
                 inputs = self.anal.resampler(self.tprs, scoring,\
                                         not_run=True)
@@ -194,10 +195,10 @@ class Controller(object):
         """
         traj = self.anal.data[0]
         for inp in inputs:
-            print(traj, n, inp[0], inp[1])
+            print('not_run info:', n, inp[0], inp[1])
             data = traj[inp[0]:inp[0]+nsteps]
             # n stands for nepoch and inp[0] for label
-            h5file = "./trajs/cossio_%g_%g.h5"%(n,inp[0])
+            h5file = "./trajs/%g_%g_%g.h5"%(n,inp[0],nsteps)
             with h5py.File(h5file, "w") as trajectory:
                 trajectory.create_dataset("data", data=data)
             self.trajfiles.append(h5file)
