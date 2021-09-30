@@ -56,7 +56,7 @@ class Analyzer(object):
 
     def build_msm(self, n_epoch, n_runs, lagt, mcs=85, ms=75, dt=1, sym=False,\
                     n_clusters=0, rate_mat=True, rate_method='Taylor', \
-                    gro=None, method=None, offset=0, entropy=False):
+                    gro=None, method=None, offset=0):
         """
         Build the MSM for the next round.
         Return macrostates obtained from the MSM.
@@ -88,8 +88,6 @@ class Analyzer(object):
             or contacts), rama (['A','E']), ramagrid (grid))
         offset : int
             Number of input trajectories. If None offset=1
-        entropy : bool
-            Add a pseudocount to COUNT matrix to compute later relative entropy
 
         """
         self.n_epoch, self.n_runs, self.n_clusters = n_epoch, n_runs, n_clusters
@@ -132,7 +130,7 @@ class Analyzer(object):
         self.trajs = trs
 
         #2- do MSM:
-        self.gen_msm(tr_instance=True, method=rate_method, entropy=entropy)
+        self.gen_msm(tr_instance=True, method=rate_method)
 
         if self.n_clusters > 0:
             self.gen_macro_msm()
@@ -286,7 +284,7 @@ class Analyzer(object):
 
         return labels
 
-    def gen_msm(self, tr_instance=False, method='Taylor', entropy=False):
+    def gen_msm(self, tr_instance=False, method='Taylor'):
         """
         Do MSM and build macrostates
 
@@ -315,12 +313,6 @@ class Analyzer(object):
         micro_msm = msm.MSM(data=distrajs, keys=smsm.keys, lagt=lagt, sym=sym)
         micro_msm.do_count()
         
-        if entropy:
-            nframes = 0
-            for tr in distrajs:
-                nframes += len(tr.distraj)
-            micro_msm.count = micro_msm.count + 1./float(nframes)
-
         if rate:
             smsm.do_lbrate(evecs=False)
             micro_msm.do_trans(evecs=False)
