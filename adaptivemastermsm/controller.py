@@ -113,7 +113,7 @@ class Controller(object):
 
     def adaptive_sampling(self, n_runs, lagt, mcs=85, ms=15, sym=False, rate_mat=True,    \
                         scoring='populations', n_epochs=2, nsteps=250000, max_time=100000.0,\
-                        method=None, not_run=False, entropy=False):
+                        method=None, not_run=False):
         """
         Implementation of the Adaptive Sampling algorithm
 
@@ -149,7 +149,7 @@ class Controller(object):
             self.anal = analyzer.Analyzer(self.trajfiles)
             self.anal.build_msm(n, n_runs, lagt, method=method, mcs=mcs, ms=ms,  \
                                 sym=sym, gro=self.gro_initial, rate_mat=rate_mat,\
-                                offset=offset, entropy=entropy)
+                                offset=offset)
             if not_run:
                 inputs = self.anal.resampler(self.tprs, scoring,\
                                         not_run=True)
