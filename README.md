@@ -1,6 +1,8 @@
 The notebooks in this branch allow to carry out
 adaptive sampling calculations for the examples
-studied. Dependencies are listed below.
+studied, so that all the routines to carry out
+adaptive sampling are included in the notebook.
+Dependencies are listed below.
 
 Data to run notebooks
 ---------------------
